@@ -11,10 +11,17 @@ export default function Repositories() {
           <h1 className="text-3xl font-bold text-foreground">Repositories</h1>
           <p className="text-muted-foreground">Manage your connected repositories</p>
         </div>
-        <Button className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          Connect Repository
-        </Button>
+        {/* BOTÓN SUPERIOR ENLAZADO */}
+        <a 
+          href="https://github.com/apps/mivna-architect-bot" 
+          target="_blank" 
+          rel="noopener noreferrer"
+        >
+          <Button className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            Connect Repository
+          </Button>
+        </a>
       </div>
 
       <div className="flex items-center gap-4">
@@ -48,10 +55,17 @@ export default function Repositories() {
             <p className="text-sm text-muted-foreground max-w-sm mb-6">
               Connect your GitHub repositories to start visualizing your codebase and generating diagrams automatically.
             </p>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Connect your first repository
-            </Button>
+            {/* BOTÓN CENTRAL ENLAZADO */}
+            <a 
+              href="https://github.com/apps/mivna-architect-bot" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Connect your first repository
+              </Button>
+            </a>
           </div>
         </CardContent>
       </Card>

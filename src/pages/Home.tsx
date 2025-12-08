@@ -20,6 +20,7 @@ export default function Home() {
         </p>
       </div>
 
+      {/* Grid de Estadísticas */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="border-border bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -56,20 +57,31 @@ export default function Home() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Quick Actions Card */}
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Get started with your workflow</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => navigate('/repositories')}
+            
+            {/* BOTÓN 1: Connect Repository (Enlace externo a GitHub) */}
+            <a 
+              href="https://github.com/apps/mivna-architect-bot" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block w-full"
             >
-              <GitBranch className="h-4 w-4 mr-2" />
-              Connect Repository
-            </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+              >
+                <GitBranch className="h-4 w-4 mr-2" />
+                Connect Repository
+              </Button>
+            </a>
+
+            {/* BOTÓN 2: Create Diagram (Navegación interna) */}
             <Button 
               variant="outline" 
               className="w-full justify-start"
@@ -78,6 +90,7 @@ export default function Home() {
               <Share2 className="h-4 w-4 mr-2" />
               Create Diagram
             </Button>
+            
           </CardContent>
         </Card>
 
