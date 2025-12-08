@@ -3,9 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Octokit } from "octokit";
 import { createAppAuth } from "@octokit/auth-app";
 
-export const config = {
-  runtime: 'edge',
-};
+// NOTA: Usamos Node.js runtime por defecto (más compatible)
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,25 +12,28 @@ const supabase = createClient(
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-export default async function handler(req: Request) {
+// Usamos 'any' para evitar problemas de tipos si faltan definiciones
+export default async function handler(req: any, res: any) {
+  // 1. Método permitido
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    return res.status(405).send('Method not allowed');
   }
 
   try {
-    const payload = await req.json();
-    const eventType = req.headers.get("x-github-event");
+    // En Node.js Vercel, req.body ya viene listo si es JSON
+    const payload = req.body;
+    // Las cabeceras en Node suelen venir en minúsculas
+    const eventType = req.headers["x-github-event"];
 
+    // 2. Filtro: Solo Pull Requests
     if (eventType !== "pull_request" || (payload.action !== "opened" && payload.action !== "synchronize")) {
-      return new Response(JSON.stringify({ message: "Ignorado" }), { 
-        status: 200, 
-        headers: { 'Content-Type': 'application/json' } 
-      });
+      return res.status(200).json({ message: "Ignorado: No es PR o acción relevante" });
     }
 
     const { repository, pull_request, installation } = payload;
     console.log(`🚀 MIVNA: Analizando PR #${pull_request.number}`);
 
+    // 3. Autenticación GitHub
     const appOctokit = new Octokit({
       authStrategy: createAppAuth,
       auth: {
@@ -42,8 +43,10 @@ export default async function handler(req: Request) {
       },
     });
 
+    // 4. Obtener Diff
     const { data: diffData } = await appOctokit.request(pull_request.diff_url);
 
+    // 5. Gemini 1.5 Flash
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = `
       ACT AS: Senior Software Architect.
@@ -57,6 +60,7 @@ export default async function handler(req: Request) {
     const text = result.response.text().replace(/```json|```/g, "").trim();
     const aiData = JSON.parse(text);
 
+    // 6. Guardar en Supabase
     await supabase.from("repositories").upsert({
        id: repository.id,
        full_name: repository.full_name,
@@ -71,6 +75,7 @@ export default async function handler(req: Request) {
         commit_sha: pull_request.head.sha
     });
 
+    // 7. Comentar en GitHub
     await appOctokit.rest.issues.createComment({
       owner: repository.owner.login,
       repo: repository.name,
@@ -78,16 +83,10 @@ export default async function handler(req: Request) {
       body: `## 🏗️ MIVNA Update\n\n${aiData.explanation}\n\n\`\`\`mermaid\n${aiData.mermaid_code}\n\`\`\``,
     });
 
-    return new Response(JSON.stringify({ success: true }), { 
-      status: 200, 
-      headers: { 'Content-Type': 'application/json' } 
-    });
+    return res.status(200).json({ success: true });
 
   } catch (error: any) {
-    console.error("❌ Error:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), { 
-      status: 500, 
-      headers: { 'Content-Type': 'application/json' } 
-    });
+    console.error("❌ Error MIVNA:", error.message);
+    return res.status(500).json({ error: error.message });
   }
 }
