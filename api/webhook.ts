@@ -3,10 +3,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Octokit } from "octokit";
 import { createAppAuth } from "@octokit/auth-app";
 
-// ⚠️ ESTO ES LO NUEVO: Forzamos el motor Node.js
+// 🛑 ESTO ES LO QUE ARREGLA EL ERROR "UNSUPPORTED MODULES"
 export const config = {
   runtime: 'nodejs', 
-  maxDuration: 60, // Le damos hasta 60 segundos para pensar
+  maxDuration: 60,
 };
 
 const supabase = createClient(
@@ -16,7 +16,7 @@ const supabase = createClient(
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// Usamos 'any' en los tipos para evitar conflictos de compilación en Vercel
+// Usamos 'any' para evitar líos de tipos en la compilación
 export default async function handler(req: any, res: any) {
   // 1. Validar Método
   if (req.method !== 'POST') {
@@ -24,13 +24,13 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    // 2. Preparar datos (En Node.js req.body ya viene parseado usualmente)
+    // 2. Preparar datos (En Node.js req.body ya viene listo)
     const payload = req.body;
     const eventType = req.headers["x-github-event"];
 
     console.log(`📡 Evento recibido: ${eventType}`);
 
-    // 3. Filtro: Solo Pull Requests (abiertos o sincronizados)
+    // 3. Filtro: Solo Pull Requests
     if (eventType !== "pull_request" || (payload.action !== "opened" && payload.action !== "synchronize")) {
       return res.status(200).json({ message: "Ignorado: No es un evento de interés" });
     }
@@ -38,7 +38,7 @@ export default async function handler(req: any, res: any) {
     const { repository, pull_request, installation } = payload;
     console.log(`🚀 MIVNA: Analizando PR #${pull_request.number} en ${repository.full_name}`);
 
-    // 4. Autenticación GitHub (Octokit)
+    // 4. Autenticación GitHub
     const appOctokit = new Octokit({
       authStrategy: createAppAuth,
       auth: {
@@ -48,7 +48,7 @@ export default async function handler(req: any, res: any) {
       },
     });
 
-    // 5. Obtener el Diff (El código que cambió)
+    // 5. Obtener el Diff
     const { data: diffData } = await appOctokit.request(pull_request.diff_url);
     
     if (!diffData) {
@@ -72,19 +72,16 @@ export default async function handler(req: any, res: any) {
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
-    // Limpieza básica del JSON por si la IA añade markdown ```json ... ```
     const cleanJson = responseText.replace(/```json|```/g, "").trim();
     const aiData = JSON.parse(cleanJson);
 
-    // 7. Guardar en Base de Datos (Supabase)
-    // Primero aseguramos que el repo existe
+    // 7. Guardar en Supabase
     await supabase.from("repositories").upsert({
        id: repository.id,
        full_name: repository.full_name,
        installation_id: installation.id
     });
 
-    // Guardamos el diagrama
     await supabase.from("architecture_diagrams").insert({
         repository_id: repository.id,
         mermaid_code: aiData.mermaid_code,
@@ -105,7 +102,6 @@ export default async function handler(req: any, res: any) {
 
   } catch (error: any) {
     console.error("❌ Error MIVNA:", error.message);
-    // Devolvemos 500 para ver el error en los logs, pero respondemos JSON
     return res.status(500).json({ error: error.message });
   }
 }
