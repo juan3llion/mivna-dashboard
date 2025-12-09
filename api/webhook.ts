@@ -3,7 +3,11 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Octokit } from "octokit";
 import { createAppAuth } from "@octokit/auth-app";
 
-// NOTA: Usamos Node.js runtime por defecto (más compatible)
+// ⚠️ ESTO ES LO NUEVO: Forzamos el motor Node.js
+export const config = {
+  runtime: 'nodejs', 
+  maxDuration: 60, // Le damos hasta 60 segundos para pensar
+};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,28 +16,29 @@ const supabase = createClient(
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// Usamos 'any' para evitar problemas de tipos si faltan definiciones
+// Usamos 'any' en los tipos para evitar conflictos de compilación en Vercel
 export default async function handler(req: any, res: any) {
-  // 1. Método permitido
+  // 1. Validar Método
   if (req.method !== 'POST') {
     return res.status(405).send('Method not allowed');
   }
 
   try {
-    // En Node.js Vercel, req.body ya viene listo si es JSON
+    // 2. Preparar datos (En Node.js req.body ya viene parseado usualmente)
     const payload = req.body;
-    // Las cabeceras en Node suelen venir en minúsculas
     const eventType = req.headers["x-github-event"];
 
-    // 2. Filtro: Solo Pull Requests
+    console.log(`📡 Evento recibido: ${eventType}`);
+
+    // 3. Filtro: Solo Pull Requests (abiertos o sincronizados)
     if (eventType !== "pull_request" || (payload.action !== "opened" && payload.action !== "synchronize")) {
-      return res.status(200).json({ message: "Ignorado: No es PR o acción relevante" });
+      return res.status(200).json({ message: "Ignorado: No es un evento de interés" });
     }
 
     const { repository, pull_request, installation } = payload;
-    console.log(`🚀 MIVNA: Analizando PR #${pull_request.number}`);
+    console.log(`🚀 MIVNA: Analizando PR #${pull_request.number} en ${repository.full_name}`);
 
-    // 3. Autenticación GitHub
+    // 4. Autenticación GitHub (Octokit)
     const appOctokit = new Octokit({
       authStrategy: createAppAuth,
       auth: {
@@ -43,30 +48,43 @@ export default async function handler(req: any, res: any) {
       },
     });
 
-    // 4. Obtener Diff
+    // 5. Obtener el Diff (El código que cambió)
     const { data: diffData } = await appOctokit.request(pull_request.diff_url);
+    
+    if (!diffData) {
+      throw new Error("No se pudo obtener el diff del PR");
+    }
 
-    // 5. Gemini 1.5 Flash
+    // 6. Cerebro: Google Gemini
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = `
       ACT AS: Senior Software Architect.
-      TASK: Create a Mermaid.js diagram code from this diff.
-      CONTEXT: Repo: ${repository.full_name}
-      DIFF: ${diffData.substring(0, 40000)}
-      OUTPUT JSON ONLY: { "mermaid_code": "graph TD; ...", "explanation": "Brief summary." }
+      TASK: Analyze this code diff and create a Mermaid.js diagram.
+      CONTEXT: Repository: ${repository.full_name}
+      DIFF: ${diffData.substring(0, 30000)}
+      
+      OUTPUT STRICT JSON FORMAT:
+      {
+        "mermaid_code": "graph TD; ...",
+        "explanation": "Brief summary of architectural changes (max 3 sentences)."
+      }
     `;
 
     const result = await model.generateContent(prompt);
-    const text = result.response.text().replace(/```json|```/g, "").trim();
-    const aiData = JSON.parse(text);
+    const responseText = result.response.text();
+    // Limpieza básica del JSON por si la IA añade markdown ```json ... ```
+    const cleanJson = responseText.replace(/```json|```/g, "").trim();
+    const aiData = JSON.parse(cleanJson);
 
-    // 6. Guardar en Supabase
+    // 7. Guardar en Base de Datos (Supabase)
+    // Primero aseguramos que el repo existe
     await supabase.from("repositories").upsert({
        id: repository.id,
        full_name: repository.full_name,
        installation_id: installation.id
     });
 
+    // Guardamos el diagrama
     await supabase.from("architecture_diagrams").insert({
         repository_id: repository.id,
         mermaid_code: aiData.mermaid_code,
@@ -75,18 +93,19 @@ export default async function handler(req: any, res: any) {
         commit_sha: pull_request.head.sha
     });
 
-    // 7. Comentar en GitHub
+    // 8. Comentar en el PR
     await appOctokit.rest.issues.createComment({
       owner: repository.owner.login,
       repo: repository.name,
       issue_number: pull_request.number,
-      body: `## 🏗️ MIVNA Update\n\n${aiData.explanation}\n\n\`\`\`mermaid\n${aiData.mermaid_code}\n\`\`\``,
+      body: `## 🏗️ MIVNA Architecture Update\n\n${aiData.explanation}\n\n\`\`\`mermaid\n${aiData.mermaid_code}\n\`\`\``,
     });
 
     return res.status(200).json({ success: true });
 
   } catch (error: any) {
     console.error("❌ Error MIVNA:", error.message);
+    // Devolvemos 500 para ver el error en los logs, pero respondemos JSON
     return res.status(500).json({ error: error.message });
   }
 }
