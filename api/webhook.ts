@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Octokit } from "octokit";
 import { createAppAuth } from "@octokit/auth-app";
 
-// 🛑 ESTO ES LO QUE ARREGLA EL ERROR "UNSUPPORTED MODULES"
+// 1. SOLUCIÓN AL ERROR "CLEAN-STACK: OS" (Forzamos Node.js)
 export const config = {
   runtime: 'nodejs', 
   maxDuration: 60,
@@ -16,29 +16,24 @@ const supabase = createClient(
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// Usamos 'any' para evitar líos de tipos en la compilación
 export default async function handler(req: any, res: any) {
-  // 1. Validar Método
   if (req.method !== 'POST') {
     return res.status(405).send('Method not allowed');
   }
 
   try {
-    // 2. Preparar datos (En Node.js req.body ya viene listo)
     const payload = req.body;
     const eventType = req.headers["x-github-event"];
 
     console.log(`📡 Evento recibido: ${eventType}`);
 
-    // 3. Filtro: Solo Pull Requests
     if (eventType !== "pull_request" || (payload.action !== "opened" && payload.action !== "synchronize")) {
-      return res.status(200).json({ message: "Ignorado: No es un evento de interés" });
+      return res.status(200).json({ message: "Ignorado" });
     }
 
     const { repository, pull_request, installation } = payload;
-    console.log(`🚀 MIVNA: Analizando PR #${pull_request.number} en ${repository.full_name}`);
+    console.log(`🚀 MIVNA: Analizando PR #${pull_request.number}`);
 
-    // 4. Autenticación GitHub
     const appOctokit = new Octokit({
       authStrategy: createAppAuth,
       auth: {
@@ -48,25 +43,26 @@ export default async function handler(req: any, res: any) {
       },
     });
 
-    // 5. Obtener el Diff
     const { data: diffData } = await appOctokit.request(pull_request.diff_url);
     
     if (!diffData) {
-      throw new Error("No se pudo obtener el diff del PR");
+      throw new Error("No diff found");
     }
 
-    // 6. Cerebro: Google Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // 2. SOLUCIÓN TUYA: Usamos el nombre específico del modelo
+    // Cambiamos "gemini-1.5-flash" por "gemini-1.5-flash-001"
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
+    
     const prompt = `
       ACT AS: Senior Software Architect.
       TASK: Analyze this code diff and create a Mermaid.js diagram.
       CONTEXT: Repository: ${repository.full_name}
       DIFF: ${diffData.substring(0, 30000)}
       
-      OUTPUT STRICT JSON FORMAT:
+      OUTPUT STRICT JSON FORMAT ONLY:
       {
         "mermaid_code": "graph TD; ...",
-        "explanation": "Brief summary of architectural changes (max 3 sentences)."
+        "explanation": "Brief summary of changes."
       }
     `;
 
@@ -75,7 +71,7 @@ export default async function handler(req: any, res: any) {
     const cleanJson = responseText.replace(/```json|```/g, "").trim();
     const aiData = JSON.parse(cleanJson);
 
-    // 7. Guardar en Supabase
+    // Guardar en Supabase
     await supabase.from("repositories").upsert({
        id: repository.id,
        full_name: repository.full_name,
@@ -90,12 +86,12 @@ export default async function handler(req: any, res: any) {
         commit_sha: pull_request.head.sha
     });
 
-    // 8. Comentar en el PR
+    // Comentar en GitHub
     await appOctokit.rest.issues.createComment({
       owner: repository.owner.login,
       repo: repository.name,
       issue_number: pull_request.number,
-      body: `## 🏗️ MIVNA Architecture Update\n\n${aiData.explanation}\n\n\`\`\`mermaid\n${aiData.mermaid_code}\n\`\`\``,
+      body: `## 🏗️ MIVNA Architecture\n\n${aiData.explanation}\n\n\`\`\`mermaid\n${aiData.mermaid_code}\n\`\`\``,
     });
 
     return res.status(200).json({ success: true });
