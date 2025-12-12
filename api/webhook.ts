@@ -8,7 +8,7 @@ export const config = {
   maxDuration: 60,
 };
 
-// ⚠️ Usamos Service Role para saltarnos las reglas RLS
+// Usamos Service Role para tener permisos totales en DB
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -25,12 +25,13 @@ export default async function handler(req: any, res: any) {
     const payload = req.body;
     const eventType = req.headers["x-github-event"];
 
+    // Solo PRs
     if (eventType !== "pull_request" || (payload.action !== "opened" && payload.action !== "synchronize")) {
       return res.status(200).json({ message: "Ignorado" });
     }
 
     const { repository, pull_request, installation } = payload;
-    console.log(`🚀 MIVNA: Analizando PR #${pull_request.number} en ${repository.full_name}`);
+    console.log(`🚀 MIVNA: Analizando PR #${pull_request.number}`);
 
     // 1. GitHub Auth
     const appOctokit = new Octokit({
@@ -43,10 +44,7 @@ export default async function handler(req: any, res: any) {
     });
 
     const { data: diffData } = await appOctokit.request(pull_request.diff_url);
-    
-    if (!diffData) {
-      return res.status(200).json({ message: "Diff vacío" });
-    }
+    if (!diffData) return res.status(200).json({ message: "Diff vacío" });
 
     // 2. IA Generation
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -57,38 +55,38 @@ export default async function handler(req: any, res: any) {
       CONTEXT: Repository: ${repository.full_name}
       DIFF: ${diffData.substring(0, 30000)}
       
-      CRITICAL MERMAID RULES:
+      RULES:
       1. Use "graph TD".
-      2. ALWAYS wrap node labels in double quotes.
-      3. Do NOT use special characters inside node IDs.
+      2. WRAP LABELS IN DOUBLE QUOTES.
+      3. No special chars in Node IDs.
 
-      OUTPUT STRICT JSON FORMAT ONLY:
-      {
-        "mermaid_code": "graph TD; ...",
-        "explanation": "Brief summary."
-      }
+      OUTPUT JSON: { "mermaid_code": "...", "explanation": "..." }
     `;
 
-    console.log("🧠 Consultando a Gemini 2.5 Flash...");
+    console.log("🧠 Consultando IA...");
     const result = await model.generateContent(prompt);
     const aiData = JSON.parse(result.response.text().replace(/```json|```/g, "").trim());
 
-    // 3. 🛡️ GUARDADO EN BASE DE DATOS (CON CHIVATO)
-    console.log("💾 Intentando guardar en Supabase...");
-    
-    // Guardar Repo
+    // 3. 🛡️ GUARDADO EN DB (CORREGIDO)
+    console.log("💾 Guardando en Supabase...");
+
+    // PASO A: Guardar la Instalación
+    const { error: installError } = await supabase.from("github_installations").upsert({
+        id: installation.id,
+        account_name: repository.owner.login,
+        account_avatar_url: repository.owner.avatar_url
+    });
+    if (installError) throw new Error(`Error Instalación: ${installError.message}`);
+
+    // PASO B: Guardar el Repositorio
     const { error: repoError } = await supabase.from("repositories").upsert({
        id: repository.id,
        full_name: repository.full_name,
        installation_id: installation.id
     });
-    
-    if (repoError) {
-        console.error("❌ ERROR CRÍTICO SUPABASE (Repos):", repoError);
-        throw new Error(`Fallo guardando Repo: ${repoError.message}`);
-    }
+    if (repoError) throw new Error(`Error Repo: ${repoError.message}`);
 
-    // Guardar Diagrama
+    // PASO C: Guardar el Diagrama
     const { error: diagError } = await supabase.from("architecture_diagrams").insert({
         repository_id: repository.id,
         mermaid_code: aiData.mermaid_code,
@@ -96,13 +94,9 @@ export default async function handler(req: any, res: any) {
         pr_number: pull_request.number,
         commit_sha: pull_request.head.sha
     });
+    if (diagError) throw new Error(`Error Diagrama: ${diagError.message}`);
 
-    if (diagError) {
-        console.error("❌ ERROR CRÍTICO SUPABASE (Diagrams):", diagError);
-        throw new Error(`Fallo guardando Diagrama: ${diagError.message}`);
-    }
-
-    console.log("✅ Guardado exitoso en DB.");
+    console.log("✅ TODO GUARDADO CORRECTAMENTE EN DB.");
 
     // 4. Comentar en GitHub
     await appOctokit.rest.issues.createComment({
@@ -115,7 +109,7 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({ success: true });
 
   } catch (error: any) {
-    console.error("❌ Error Fatal:", error.message);
+    console.error("❌ ERROR FATAL:", error.message);
     return res.status(500).json({ error: error.message });
   }
 }
