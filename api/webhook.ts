@@ -70,7 +70,7 @@ export default async function handler(req: any, res: any) {
     // 3. 🛡️ GUARDADO EN DB (CORREGIDO)
     console.log("💾 Guardando en Supabase...");
 
-    // PASO A: Guardar la Instalación
+    // PASO A: Guardar la Instalación (Esto faltaba y causaba el error silencioso)
     const { error: installError } = await supabase.from("github_installations").upsert({
         id: installation.id,
         account_name: repository.owner.login,
@@ -109,6 +109,7 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({ success: true });
 
   } catch (error: any) {
+    // Esto hará que el log salga ROJO en Vercel
     console.error("❌ ERROR FATAL:", error.message);
     return res.status(500).json({ error: error.message });
   }
