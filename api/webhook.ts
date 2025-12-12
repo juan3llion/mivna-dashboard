@@ -3,12 +3,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Octokit } from "octokit";
 import { createAppAuth } from "@octokit/auth-app";
 
-// ✅ CONFIGURACIÓN VITAL: Node.js para soportar todas las librerías
 export const config = {
   runtime: 'nodejs', 
   maxDuration: 60,
 };
 
+// Usamos Service Role para tener permisos totales en DB
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -25,15 +25,15 @@ export default async function handler(req: any, res: any) {
     const payload = req.body;
     const eventType = req.headers["x-github-event"];
 
-    // FILTRO: Solo Pull Requests
+    // Solo PRs
     if (eventType !== "pull_request" || (payload.action !== "opened" && payload.action !== "synchronize")) {
-      return res.status(200).json({ message: "Ignorado: No es PR o acción relevante" });
+      return res.status(200).json({ message: "Ignorado" });
     }
 
     const { repository, pull_request, installation } = payload;
-    console.log(`🚀 MIVNA: Analizando PR #${pull_request.number} en ${repository.full_name}`);
+    console.log(`🚀 MIVNA: Analizando PR #${pull_request.number}`);
 
-    // CONEXIÓN GITHUB
+    // 1. GitHub Auth
     const appOctokit = new Octokit({
       authStrategy: createAppAuth,
       auth: {
@@ -44,79 +44,73 @@ export default async function handler(req: any, res: any) {
     });
 
     const { data: diffData } = await appOctokit.request(pull_request.diff_url);
-    
-    // Si no hay cambios, no gastamos IA
-    if (!diffData || diffData.length === 0) {
-      console.log("⚠️ Diff vacío.");
-      return res.status(200).json({ message: "Diff vacío" });
-    }
+    if (!diffData) return res.status(200).json({ message: "Diff vacío" });
 
-    // 🔥 USAMOS GEMINI 2.5 FLASH (Ahora que tienes billing activo)
+    // 2. IA Generation
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     
-    // PROMPT REFINADO: Instrucciones estrictas para evitar errores de sintaxis en Mermaid
     const prompt = `
       ACT AS: Senior Software Architect.
       TASK: Analyze this code diff and create a Mermaid.js diagram.
       CONTEXT: Repository: ${repository.full_name}
       DIFF: ${diffData.substring(0, 30000)}
       
-      CRITICAL MERMAID RULES:
+      RULES:
       1. Use "graph TD".
-      2. ALWAYS wrap node labels in double quotes. Example: A["User Login"] --> B["Database"].
-      3. Do NOT use special characters () [] {} inside node IDs (the part before the bracket).
-      4. Keep it clean and high-level.
+      2. WRAP LABELS IN DOUBLE QUOTES.
+      3. No special chars in Node IDs.
 
-      OUTPUT STRICT JSON FORMAT ONLY (No markdown):
-      {
-        "mermaid_code": "graph TD; ...",
-        "explanation": "Brief summary of changes."
-      }
+      OUTPUT JSON: { "mermaid_code": "...", "explanation": "..." }
     `;
 
-    console.log("🧠 Consultando a Gemini 2.5 Flash...");
+    console.log("🧠 Consultando IA...");
     const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    
-    // Limpieza de JSON
-    const cleanJson = responseText.replace(/```json|```/g, "").trim();
-    let aiData;
-    
-    try {
-        aiData = JSON.parse(cleanJson);
-    } catch (e) {
-        console.error("Error parseando JSON de IA:", cleanJson);
-        throw new Error("La IA no devolvió un JSON válido");
-    }
+    const aiData = JSON.parse(result.response.text().replace(/```json|```/g, "").trim());
 
-    // GUARDAR EN SUPABASE
-    await supabase.from("repositories").upsert({
+    // 3. 🛡️ GUARDADO EN DB (CORREGIDO)
+    console.log("💾 Guardando en Supabase...");
+
+    // PASO A: Guardar la Instalación (Esto faltaba y causaba el error silencioso)
+    const { error: installError } = await supabase.from("github_installations").upsert({
+        id: installation.id,
+        account_name: repository.owner.login,
+        account_avatar_url: repository.owner.avatar_url
+    });
+    if (installError) throw new Error(`Error Instalación: ${installError.message}`);
+
+    // PASO B: Guardar el Repositorio
+    const { error: repoError } = await supabase.from("repositories").upsert({
        id: repository.id,
        full_name: repository.full_name,
        installation_id: installation.id
     });
+    if (repoError) throw new Error(`Error Repo: ${repoError.message}`);
 
-    await supabase.from("architecture_diagrams").insert({
+    // PASO C: Guardar el Diagrama
+    const { error: diagError } = await supabase.from("architecture_diagrams").insert({
         repository_id: repository.id,
         mermaid_code: aiData.mermaid_code,
         explanation_markdown: aiData.explanation,
         pr_number: pull_request.number,
         commit_sha: pull_request.head.sha
     });
+    if (diagError) throw new Error(`Error Diagrama: ${diagError.message}`);
 
-    // COMENTAR EN GITHUB
+    console.log("✅ TODO GUARDADO CORRECTAMENTE EN DB.");
+
+    // 4. Comentar en GitHub
     await appOctokit.rest.issues.createComment({
       owner: repository.owner.login,
       repo: repository.name,
       issue_number: pull_request.number,
-      body: `## 🏗️ MIVNA Architecture (Gemini 2.5)\n\n${aiData.explanation}\n\n\`\`\`mermaid\n${aiData.mermaid_code}\n\`\`\``,
+      body: `## 🏗️ MIVNA Architecture\n\n${aiData.explanation}\n\n\`\`\`mermaid\n${aiData.mermaid_code}\n\`\`\``,
     });
 
-    console.log("✅ Éxito: Diagrama publicado.");
     return res.status(200).json({ success: true });
 
   } catch (error: any) {
-    console.error("❌ Error MIVNA:", error.message);
+    // Esto hará que el log salga ROJO en Vercel
+    console.error("❌ ERROR FATAL:", error.message);
     return res.status(500).json({ error: error.message });
   }
 }
