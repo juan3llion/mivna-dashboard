@@ -55,7 +55,7 @@ export default async function handler(req: any, res: any) {
     }
 
     // CEREBRO IA: Usamos el modelo que TUS LOGS confirmaron que existe
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     
     const prompt = `
       ACT AS: Senior Software Architect.
@@ -70,7 +70,7 @@ export default async function handler(req: any, res: any) {
       }
     `;
 
-    console.log("🧠 Consultando a Gemini 2.5 Flash...");
+    console.log("🧠 Consultando a Gemini 2.0 Flash...");
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     
