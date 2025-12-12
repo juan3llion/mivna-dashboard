@@ -1,13 +1,20 @@
-import { Outlet } from 'react-router-dom';
+import { ReactNode } from 'react';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 
-export function DashboardLayout() {
+interface DashboardLayoutProps {
+  children: ReactNode;
+}
+
+export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="min-h-screen flex w-full bg-background">
-      <AppSidebar />
-      <main className="flex-1 overflow-auto">
-        <Outlet />
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar />
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </div>
+    </SidebarProvider>
   );
 }
