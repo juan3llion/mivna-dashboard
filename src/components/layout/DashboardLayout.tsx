@@ -7,6 +7,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  // Dashboard layout wrapper
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
