@@ -1,13 +1,51 @@
+import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { GitBranch, Share2, Activity, Zap } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { GitBranch, Share2, Activity, Zap, Github, Plus } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const displayName = user?.email?.split('@')[0] || 'Developer';
+  
+  const GITHUB_APP_INSTALL_URL = "https://github.com/apps/mivna-architect-bot";
+
+  useEffect(() => {
+    const handleInstallation = async () => {
+      const installationId = searchParams.get("installation_id");
+      const setupAction = searchParams.get("setup_action");
+
+      if (installationId && setupAction === "install") {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          const { error } = await (supabase.from("user_installations" as any) as any).insert({
+            user_id: user.id,
+            installation_id: parseInt(installationId),
+          });
+
+          if (error) {
+            if (error.code !== "23505") throw error;
+          }
+
+          toast.success("¡Repositorios conectados correctamente!");
+          window.history.replaceState({}, "", "/");
+          
+        } catch (error: any) {
+          console.error("Error linking:", error);
+          toast.error("Error al vincular repositorios");
+        }
+      }
+    };
+
+    handleInstallation();
+  }, [searchParams]);
 
   return (
     <div className="p-6 space-y-6">
@@ -65,21 +103,16 @@ export default function Home() {
           </CardHeader>
           <CardContent className="space-y-3">
             
-            {/* BOTÓN 1: Connect Repository (Enlace externo a GitHub) */}
-            <a 
-              href="https://github.com/apps/mivna-architect-bot" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="block w-full"
+            {/* BOTÓN 1: Connect Repository */}
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-2"
+              onClick={() => window.location.href = GITHUB_APP_INSTALL_URL}
             >
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-              >
-                <GitBranch className="h-4 w-4 mr-2" />
-                Connect Repository
-              </Button>
-            </a>
+              <Plus className="h-4 w-4" />
+              <Github className="h-4 w-4" />
+              Conectar Repositorio
+            </Button>
 
             {/* BOTÓN 2: Create Diagram (Navegación interna) */}
             <Button 
