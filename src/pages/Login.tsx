@@ -29,6 +29,13 @@ const Login = () => {
 
   useEffect(() => {
     const checkSession = async () => {
+      // If URL has OAuth params, don't redirect - let Supabase process them
+      const hash = window.location.hash;
+      const search = window.location.search;
+      if (hash.includes('access_token') || search.includes('code=') || search.includes('installation_id=')) {
+        return;
+      }
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         navigate("/");
