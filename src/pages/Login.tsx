@@ -38,7 +38,7 @@ const Login = () => {
       
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/");
+        navigate("/dashboard");
       }
     };
     checkSession();
@@ -81,7 +81,7 @@ const Login = () => {
           toast.error(error.message);
         }
       } else {
-        navigate("/");
+        navigate("/dashboard");
       }
     } catch (error: any) {
       toast.error(error.message || "Error signing in");
@@ -99,7 +99,7 @@ const Login = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (error) {

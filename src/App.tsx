@@ -9,15 +9,24 @@ import Repositories from "@/pages/Repositories";
 import Diagrams from "@/pages/Diagrams";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
+import AuthCallback from "@/pages/AuthCallback";
+import RootRedirect from "@/pages/RootRedirect";
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          {/* Root dispatcher */}
+          <Route path="/" element={<RootRedirect />} />
+          
+          {/* Auth routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          
+          {/* Protected dashboard routes */}
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <DashboardLayout>
