@@ -35,7 +35,7 @@ export default function Home() {
           }
 
           toast.success("¡Repositorios conectados correctamente!");
-          window.history.replaceState({}, "", "/");
+          window.history.replaceState({}, "", "/dashboard");
           
         } catch (error: any) {
           console.error("Error linking:", error);

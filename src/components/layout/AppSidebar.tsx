@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 const navItems = [
-  { title: 'Home', url: '/', icon: Home },
+  { title: 'Home', url: '/dashboard', icon: Home },
   { title: 'Repositories', url: '/repositories', icon: GitBranch },
   { title: 'Diagrams', url: '/diagrams', icon: Share2 },
   { title: 'Settings', url: '/settings', icon: Settings },
@@ -48,7 +48,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === '/'}
+                      end={item.url === '/dashboard'}
                       className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
