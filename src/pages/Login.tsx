@@ -3,12 +3,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Github, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const passwordSchema = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[a-z]/, "Must contain a lowercase letter")
+  .regex(/[A-Z]/, "Must contain an uppercase letter")
+  .regex(/[0-9]/, "Must contain a number")
+  .regex(/[^a-zA-Z0-9]/, "Must contain a special character");
+
+const emailSchema = z.string().email("Please enter a valid email address");
 
 const Login = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   useEffect(() => {
     const checkSession = async () => {
@@ -20,25 +37,94 @@ const Login = () => {
     checkSession();
   }, [navigate]);
 
-  const handleLogin = async () => {
+  const validateForm = (): boolean => {
+    const newErrors: { email?: string; password?: string } = {};
+
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      newErrors.email = emailResult.error.errors[0].message;
+    }
+
+    if (isSignUp) {
+      const passwordResult = passwordSchema.safeParse(password);
+      if (!passwordResult.success) {
+        newErrors.password = passwordResult.error.errors[0].message;
+      }
+    } else if (password.length < 1) {
+      newErrors.password = "Password is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSignIn = async () => {
+    if (!validateForm()) return;
+
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "github",
-        options: {
-          redirectTo: window.location.origin,
-        },
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Invalid email or password");
+        } else {
+          toast.error(error.message);
+        }
+      } else {
+        navigate("/");
+      }
     } catch (error: any) {
-      toast.error(error.message || "Error al iniciar sesión");
+      toast.error(error.message || "Error signing in");
+    } finally {
       setLoading(false);
     }
   };
 
+  const handleSignUp = async () => {
+    if (!validateForm()) return;
+
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+      if (error) {
+        if (error.message.includes("User already registered")) {
+          toast.error("An account with this email already exists");
+        } else {
+          toast.error(error.message);
+        }
+      } else {
+        toast.success("Account created! You can now sign in.");
+        setIsSignUp(false);
+        setPassword("");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error creating account");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSignUp) {
+      handleSignUp();
+    } else {
+      handleSignIn();
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-slate-900 border-slate-800 text-slate-100">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border-border">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
             <svg
@@ -50,27 +136,91 @@ const Login = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <CardTitle className="text-2xl font-bold">Bienvenido a Mivna</CardTitle>
-          <CardDescription className="text-slate-400">
-            Inteligencia de Arquitectura para tus repositorios
+          <CardTitle className="text-2xl font-bold">
+            {isSignUp ? "Create an account" : "Welcome to Mivna"}
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            {isSignUp 
+              ? "Sign up to get started with Architecture Intelligence"
+              : "Sign in to continue to your dashboard"
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button
-            onClick={handleLogin}
-            disabled={loading}
-            className="w-full bg-white text-slate-950 hover:bg-slate-200 h-11 font-medium transition-all"
-          >
-            {loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Github className="mr-2 h-5 w-5" />
-            )}
-            Continuar con GitHub
-          </Button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={errors.email ? "border-destructive" : ""}
+              />
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={errors.password ? "border-destructive pr-10" : "pr-10"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-sm text-destructive">{errors.password}</p>
+              )}
+              {isSignUp && !errors.password && (
+                <p className="text-xs text-muted-foreground">
+                  Min 8 chars with lowercase, uppercase, number, and special character
+                </p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 font-medium"
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSignUp ? "Create Account" : "Sign In"}
+            </Button>
+          </form>
+
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setErrors({});
+                setPassword("");
+              }}
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              {isSignUp 
+                ? "Already have an account? Sign in" 
+                : "Don't have an account? Sign up"
+              }
+            </button>
+          </div>
           
-          <p className="mt-6 text-xs text-center text-slate-500">
-            Al continuar, aceptas nuestros términos de servicio y política de privacidad.
+          <p className="mt-6 text-xs text-center text-muted-foreground">
+            By continuing, you accept our terms of service and privacy policy.
             Mivna Beta v0.1
           </p>
         </CardContent>
