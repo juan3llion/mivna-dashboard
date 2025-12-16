@@ -72,29 +72,35 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          file_tree: Json | null
+          github_repo_id: number | null
           id: string
           name: string
           updated_at: string
           url: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           description?: string | null
+          file_tree?: Json | null
+          github_repo_id?: number | null
           id?: string
           name: string
           updated_at?: string
           url?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           description?: string | null
+          file_tree?: Json | null
+          github_repo_id?: number | null
           id?: string
           name?: string
           updated_at?: string
           url?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
