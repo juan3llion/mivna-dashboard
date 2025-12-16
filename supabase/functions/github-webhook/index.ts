@@ -1,9 +1,32 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-hub-signature-256, x-github-event, x-github-delivery',
+}
+
+// Filter out noise from file tree (node_modules, .git, dist, lock files, etc.)
+function filterFileTree(tree: any[]): any[] {
+  const excludePatterns = [
+    'node_modules',
+    '.git',
+    '.next',
+    'dist',
+    'build',
+    '.lock',
+    '-lock.json',
+    'package-lock.json',
+    'yarn.lock',
+    'pnpm-lock.yaml',
+    'bun.lockb'
+  ];
+
+  return tree.filter(item => {
+    const path = item.path.toLowerCase();
+    return !excludePatterns.some(pattern => path.includes(pattern));
+  });
 }
 
 // Create a GitHub App JWT for authentication
@@ -210,13 +233,33 @@ Deno.serve(async (req) => {
             const [owner, repo] = repoFullName.split('/');
             const tree = await fetchRepositoryTree(installToken, owner, repo, ref);
             
-            // 4. Log results
-            const files = tree.filter((item: any) => item.type === 'blob');
-            console.log(`📂 Repository has ${tree.length} items (${files.length} files)`);
-            console.log('First 5 files:');
-            files.slice(0, 5).forEach((file: any, i: number) => {
-              console.log(`  ${i + 1}. ${file.path}`);
-            });
+            // 4. Filter out noise (node_modules, .git, dist, lock files)
+            const filteredTree = filterFileTree(tree);
+            const originalCount = tree.length;
+            const filteredCount = filteredTree.length;
+            console.log(`🔧 Filtered to ${filteredCount} source files (excluded ${originalCount - filteredCount} noise files)`);
+            
+            // 5. Save to database
+            const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+            const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+            const supabase = createClient(supabaseUrl, supabaseServiceKey);
+            
+            const { error: upsertError } = await supabase
+              .from('repositories')
+              .upsert({
+                github_repo_id: payload.repository.id,
+                name: repoFullName,
+                file_tree: filteredTree,
+                updated_at: new Date().toISOString()
+              }, {
+                onConflict: 'github_repo_id'
+              });
+            
+            if (upsertError) {
+              console.error('❌ Database upsert error:', upsertError);
+            } else {
+              console.log(`✅ Successfully saved ${filteredCount} files for repo ${repoFullName}`);
+            }
           } catch (authError) {
             console.error('❌ GitHub App authentication/fetch error:', authError);
           }
