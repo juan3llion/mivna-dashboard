@@ -75,3 +75,5 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/c
 Prueba de webhook
 
 Esta es otra prueba de webhook, lovable hizo su magia, estoy probando las llamadas a la API
+
+Esta es la segunda prueba, revisando logs en supabase para asegurar que la arquitectura funciona
