@@ -81,3 +81,5 @@ Esta es otra prueba de webhook, lovable hizo su magia, estoy probando las llamad
 Esta es la segunda prueba, revisando logs en supabase para asegurar que la arquitectura funciona
 
 Esta es la tercera prueba para MIVNA, estamos solucionando el problema que no se esta guardando la informacion de los commits en la tabla "repositories"
+
+Continuamos con las pruebas... ya se solucione el problema de adaptacion de la llave
