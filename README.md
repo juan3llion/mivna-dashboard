@@ -94,3 +94,5 @@ Siguiente intento...
 Continuamos con las pruebas... no parece que todo esta apuntando a la DB de supabase, lovable crea variables personalizables para asi poder hacer override
 
 Continuamos con las pruebas... ahora hicimos un cambio en supabase 
+
+Conitnuamos con las pruebas... espero esta vez todo salga bien 
