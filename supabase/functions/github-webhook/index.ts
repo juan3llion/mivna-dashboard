@@ -308,9 +308,9 @@ Deno.serve(async (req) => {
             const filteredCount = filteredTree.length;
             console.log(`🔧 Filtered to ${filteredCount} source files (excluded ${originalCount - filteredCount} noise files)`);
             
-            // 5. Save to database
-            const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-            const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+            // 5. Save to database (using EXTERNAL_ prefixed vars to avoid Lovable Cloud override)
+            const supabaseUrl = Deno.env.get('EXTERNAL_SUPABASE_URL')!;
+            const supabaseServiceKey = Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')!;
             console.log(`🔗 Connecting to Supabase at: ${supabaseUrl}`);
             const supabase = createClient(supabaseUrl, supabaseServiceKey);
             
