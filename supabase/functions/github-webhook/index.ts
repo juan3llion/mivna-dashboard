@@ -314,19 +314,32 @@ Deno.serve(async (req) => {
             console.log(`🔗 Connecting to Supabase at: ${supabaseUrl}`);
             const supabase = createClient(supabaseUrl, supabaseServiceKey);
             
+            // Prepare the data object with correct column mapping
+            const upsertData = {
+              github_repo_id: payload.repository.id,
+              name: repoFullName,
+              full_name: repoFullName,
+              file_tree: filteredTree,
+              updated_at: new Date().toISOString()
+            };
+            
+            // Log the exact data being sent to database
+            console.log('📦 Upsert data being sent:');
+            console.log(`  - github_repo_id: ${upsertData.github_repo_id}`);
+            console.log(`  - name: ${upsertData.name}`);
+            console.log(`  - full_name: ${upsertData.full_name}`);
+            console.log(`  - file_tree items: ${Array.isArray(upsertData.file_tree) ? upsertData.file_tree.length : 'not an array'}`);
+            console.log(`  - file_tree sample: ${JSON.stringify(upsertData.file_tree?.slice(0, 2))}`);
+            
             const { error: upsertError } = await supabase
               .from('repositories')
-              .upsert({
-                github_repo_id: payload.repository.id,
-                name: repoFullName,
-                file_tree: filteredTree,
-                updated_at: new Date().toISOString()
-              }, {
+              .upsert(upsertData, {
                 onConflict: 'github_repo_id'
               });
             
             if (upsertError) {
               console.error('❌ Database upsert error:', upsertError);
+              console.error('❌ Error details:', JSON.stringify(upsertError));
             } else {
               console.log(`✅ Successfully saved ${filteredCount} files for repo ${repoFullName}`);
             }
