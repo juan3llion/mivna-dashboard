@@ -85,3 +85,6 @@ Esta es la tercera prueba para MIVNA, estamos solucionando el problema que no se
 Continuamos con las pruebas... ya se solucione el problema de adaptacion de la llave
 
 Continuamos con las pruebas... ahora ya parece que todo esta apuntando a la DB de supabase
+
+
+Continuamos con las pruebas... no parece que todo esta apuntando a la DB de supabase, lovable hara las pruebas esta vez
