@@ -311,6 +311,7 @@ Deno.serve(async (req) => {
             // 5. Save to database
             const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
             const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+            console.log(`🔗 Connecting to Supabase at: ${supabaseUrl}`);
             const supabase = createClient(supabaseUrl, supabaseServiceKey);
             
             const { error: upsertError } = await supabase
