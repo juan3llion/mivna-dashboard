@@ -2,3 +2,6 @@ project_id = "ipoeckdsktrkvnyjjcoc"
 
 [functions.github-webhook]
 verify_jwt = false
+
+[functions.generate-diagram]
+verify_jwt = false
