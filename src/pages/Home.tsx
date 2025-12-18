@@ -1,17 +1,38 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { GitBranch, Share2, Activity, Zap, Github, Plus } from 'lucide-react';
+import { GitBranch, Share2, Activity, Zap, Github, Plus, Sparkles, Loader2, FileCode } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { createClient } from '@supabase/supabase-js';
+import { MermaidRenderer } from '@/components/diagrams/MermaidRenderer';
+import { useGenerateDiagram } from '@/hooks/useGenerateDiagram';
+
+interface Repository {
+  id: string;
+  github_repo_id: number;
+  name: string;
+  full_name: string;
+  file_tree: { path: string; type: string }[] | null;
+  diagram_code: string | null;
+}
+
+const externalSupabase = createClient(
+  'https://awocsqhjcsmetezjqibo.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3b2NzcWhqY3NtZXRlempxaWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MTY2NTAsImV4cCI6MjA2NTQ5MjY1MH0.57F0zg0lWpKLJ6N8vEpHLSUIkvcOXV5bF7O06AWrjXw'
+);
 
 export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const displayName = user?.email?.split('@')[0] || 'Developer';
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [loadingRepos, setLoadingRepos] = useState(true);
+  const { generateDiagram, isGenerating } = useGenerateDiagram();
+  const [generatingRepoId, setGeneratingRepoId] = useState<number | null>(null);
   
   const GITHUB_APP_INSTALL_URL = "https://github.com/apps/mivna-architect-bot";
 
@@ -47,6 +68,46 @@ export default function Home() {
     handleInstallation();
   }, [searchParams]);
 
+  useEffect(() => {
+    fetchRepositories();
+  }, []);
+
+  const fetchRepositories = async () => {
+    setLoadingRepos(true);
+    const { data, error } = await externalSupabase
+      .from('repositories')
+      .select('id, github_repo_id, name, full_name, file_tree, diagram_code')
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching repositories:', error);
+    } else {
+      setRepositories(data || []);
+    }
+    setLoadingRepos(false);
+  };
+
+  const handleGenerateDiagram = async (repo: Repository) => {
+    if (!repo.github_repo_id) return;
+    
+    setGeneratingRepoId(repo.github_repo_id);
+    const diagramCode = await generateDiagram(repo.github_repo_id);
+    
+    if (diagramCode) {
+      setRepositories(prev => 
+        prev.map(r => 
+          r.github_repo_id === repo.github_repo_id 
+            ? { ...r, diagram_code: diagramCode }
+            : r
+        )
+      );
+    }
+    setGeneratingRepoId(null);
+  };
+
+  const fileCount = (repo: Repository) => 
+    repo.file_tree?.filter(f => f.type === 'blob').length || 0;
+
   return (
     <div className="p-6 space-y-6">
       <div className="space-y-2">
@@ -58,7 +119,6 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Grid de Estadísticas */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="border-border bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -66,8 +126,10 @@ export default function Home() {
             <GitBranch className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">No repositories connected</p>
+            <div className="text-2xl font-bold">{repositories.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {repositories.length === 0 ? 'No repositories connected' : 'Connected repositories'}
+            </p>
           </CardContent>
         </Card>
 
@@ -77,8 +139,10 @@ export default function Home() {
             <Share2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">No diagrams created</p>
+            <div className="text-2xl font-bold">
+              {repositories.filter(r => r.diagram_code).length}
+            </div>
+            <p className="text-xs text-muted-foreground">Generated diagrams</p>
           </CardContent>
         </Card>
 
@@ -94,16 +158,70 @@ export default function Home() {
         </Card>
       </div>
 
+      {loadingRepos ? (
+        <Card className="border-border bg-card">
+          <CardContent className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </CardContent>
+        </Card>
+      ) : repositories.length > 0 ? (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Connected Repositories</h2>
+          {repositories.map((repo) => (
+            <Card key={repo.id} className="border-border bg-card">
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <GitBranch className="h-5 w-5" />
+                      {repo.full_name || repo.name}
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-4 mt-1">
+                      <span className="flex items-center gap-1">
+                        <FileCode className="h-4 w-4" />
+                        {fileCount(repo)} files
+                      </span>
+                    </CardDescription>
+                  </div>
+                  {!repo.diagram_code && (
+                    <Button
+                      onClick={() => handleGenerateDiagram(repo)}
+                      disabled={isGenerating && generatingRepoId === repo.github_repo_id}
+                    >
+                      {isGenerating && generatingRepoId === repo.github_repo_id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Generate Architecture
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              {repo.diagram_code && (
+                <CardContent>
+                  <div className="rounded-lg border border-border bg-background/50 min-h-[400px]">
+                    <MermaidRenderer content={repo.diagram_code} />
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          ))}
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Quick Actions Card */}
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Get started with your workflow</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            
-            {/* BOTÓN 1: Connect Repository */}
             <Button 
               variant="outline" 
               className="w-full justify-start gap-2"
@@ -114,7 +232,6 @@ export default function Home() {
               Conectar Repositorio
             </Button>
 
-            {/* BOTÓN 2: Create Diagram (Navegación interna) */}
             <Button 
               variant="outline" 
               className="w-full justify-start"
@@ -123,7 +240,6 @@ export default function Home() {
               <Share2 className="h-4 w-4 mr-2" />
               Create Diagram
             </Button>
-            
           </CardContent>
         </Card>
 
