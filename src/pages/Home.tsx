@@ -99,7 +99,7 @@ export default function Home() {
   const diagramCount = repositories.filter(r => r.diagram_code).length;
   
   const filteredRepos = repositories.filter(repo =>
-    repo.name.toLowerCase().includes(searchQuery.toLowerCase())
+    repo.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
