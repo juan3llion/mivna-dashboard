@@ -14,6 +14,11 @@ export default {
   	},
   	extend: {
   		colors: {
+  			'primary-blue': '#197fe6',
+  			'background-light': '#f6f7f8',
+  			'background-dark': '#111921',
+  			'card-dark': '#1a222a',
+  			'border-dark': '#2a3441',
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
