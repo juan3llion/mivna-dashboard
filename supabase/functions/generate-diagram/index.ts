@@ -1,5 +1,5 @@
 // Forzando deploy
-
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -101,8 +101,8 @@ serve(async (req) => {
 
     console.log(`📝 Prepared file tree (${fileTree.length} chars)`);
 
-    // Call Lovable AI Gateway
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY"); // <--- Usamos tu llave de Gemini
+    // --- CONFIGURACIÓN DE GEMINI ---
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) {
       console.error("❌ GEMINI_API_KEY not configured");
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
@@ -169,48 +169,18 @@ ${codeSummaries}
 </file_contents>
 </input_data>`;
 
-    console.log("🤖 Calling Lovable AI Gateway with optimized prompt...");
+    // --- NUEVO BLOQUE: LLAMADA DIRECTA A GOOGLE GEMINI SDK ---
+    console.log("🤖 Asking Gemini via Direct SDK (Bypassing Gateway)...");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GEMINI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
+    // 1. Inicializar el modelo con la SDK oficial
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    // Usamos 'gemini-1.5-flash' porque es rápido y estable para este caso
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error(`❌ AI Gateway error: ${aiResponse.status}`, errorText);
-
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      return new Response(JSON.stringify({ error: "AI service error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const aiData = await aiResponse.json();
-    const rawResponse = aiData.choices?.[0]?.message?.content || "";
+    // 2. Ejecutar la generación (Unimos System Prompt + User Prompt)
+    const result = await model.generateContent(systemPrompt + "\n\n" + userPrompt);
+    const response = await result.response;
+    const rawResponse = response.text();
 
     console.log(`📝 Raw AI response length: ${rawResponse.length} chars`);
     console.log(`🧠 AI Reasoning preview: ${rawResponse.substring(0, 300)}...`);
