@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import { cloudSupabase } from "@/integrations/cloud/client";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -29,7 +25,6 @@ const Login = () => {
 
   useEffect(() => {
     const checkSession = async () => {
-      // If URL has OAuth params, don't redirect - let Supabase process them
       const hash = window.location.hash;
       const search = window.location.search;
       if (hash.includes('access_token') || search.includes('code=') || search.includes('installation_id=')) {
@@ -130,108 +125,135 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border-border">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              className="w-6 h-6 text-primary"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+    <div className="min-h-screen flex flex-col relative">
+      {/* Background Image with Blur Overlay */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ 
+          backgroundImage: "url('https://images.unsplash.com/photo-1487958449943-2429e8be8625?q=80&w=2070')" 
+        }}
+      >
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center p-4 relative z-10">
+        {/* Glassmorphism Card */}
+        <div className="w-full max-w-md bg-background/10 dark:bg-background/80 backdrop-blur-xl rounded-2xl border border-border/20 p-8 shadow-2xl">
+          
+          {/* Icon */}
+          <div className="flex justify-center mb-6">
+            <span className="material-symbols-outlined text-5xl text-foreground/90">
+              grid_view
+            </span>
           </div>
-          <CardTitle className="text-2xl font-bold">
-            {isSignUp ? "Create an account" : "Welcome to Mivna"}
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
+
+          {/* Title */}
+          <h1 className="text-3xl font-bold text-foreground text-center mb-2 font-space-grotesk">
+            {isSignUp ? "Create Account" : "Welcome to Mivna"}
+          </h1>
+          
+          {/* Subtitle */}
+          <p className="text-muted-foreground text-center mb-8 font-noto-sans">
             {isSignUp 
-              ? "Sign up to get started with Architecture Intelligence"
-              : "Sign in to continue to your dashboard"
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+              ? "Join us to start scanning architectures" 
+              : "Architectural scanning and importing for modern spatial design."}
+          </p>
+
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1.5 font-noto-sans">
+                Email
+              </label>
+              <input
                 type="email"
-                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={errors.email ? "border-destructive" : ""}
+                placeholder="you@example.com"
+                className="w-full px-4 py-3 rounded-lg bg-black/30 border border-border/30 
+                           text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 
+                           focus:ring-primary/50 focus:border-transparent transition-all font-noto-sans"
               />
               {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
+                <p className="text-destructive text-sm mt-1">{errors.email}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1.5 font-noto-sans">
+                Password
+              </label>
               <div className="relative">
-                <Input
-                  id="password"
+                <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={errors.password ? "border-destructive pr-10" : "pr-10"}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 rounded-lg bg-black/30 border border-border/30 
+                             text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 
+                             focus:ring-primary/50 focus:border-transparent transition-all pr-10 font-noto-sans"
                 />
-                <button
-                  type="button"
+                <button 
+                  type="button" 
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
+                <p className="text-destructive text-sm mt-1">{errors.password}</p>
               )}
               {isSignUp && !errors.password && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs mt-1">
                   Min 8 chars with lowercase, uppercase, number, and special character
                 </p>
               )}
             </div>
 
-            <Button
+            {/* Submit Button */}
+            <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 font-medium"
+              className="w-full py-3 px-4 rounded-lg bg-primary hover:bg-primary/90
+                         text-primary-foreground font-semibold font-space-grotesk
+                         transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {isSignUp ? "Create Account" : "Sign In"}
-            </Button>
+            </button>
           </form>
 
-          <div className="mt-4 text-center">
-            <button
+          {/* Toggle Sign In / Sign Up */}
+          <p className="text-center text-muted-foreground mt-6 text-sm font-noto-sans">
+            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+            <button 
               type="button"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setErrors({});
-                setPassword("");
+              onClick={() => { 
+                setIsSignUp(!isSignUp); 
+                setErrors({}); 
+                setPassword(""); 
               }}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              className="text-primary hover:text-primary/80 font-medium transition-colors"
             >
-              {isSignUp 
-                ? "Already have an account? Sign in" 
-                : "Don't have an account? Sign up"
-              }
+              {isSignUp ? "Sign in" : "Sign up"}
             </button>
-          </div>
-          
-          <p className="mt-6 text-xs text-center text-muted-foreground">
-            By continuing, you accept our terms of service and privacy policy.
-            Mivna Beta v0.1
           </p>
-        </CardContent>
-      </Card>
+
+          {/* Beta Notice */}
+          <p className="text-center text-muted-foreground/60 text-xs mt-6 font-noto-sans">
+            No credit card required for Beta
+          </p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="relative z-10 py-4 text-center text-muted-foreground text-sm space-x-4 font-noto-sans">
+        <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
+        <a href="#" className="hover:text-foreground transition-colors">Terms</a>
+        <a href="#" className="hover:text-foreground transition-colors">Contact</a>
+      </footer>
     </div>
   );
 };
