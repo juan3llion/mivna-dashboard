@@ -19,11 +19,11 @@ function App() {
         <Routes>
           {/* Root dispatcher */}
           <Route path="/" element={<RootRedirect />} />
-          
+
           {/* Auth routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          
+
           {/* Protected dashboard routes */}
           <Route
             path="/dashboard"
