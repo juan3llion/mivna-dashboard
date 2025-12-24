@@ -111,26 +111,28 @@ serve(async (req) => {
       });
     }
 
-    // New optimized Senior Architect prompt
-    // Prompt blindado para evitar errores de sintaxis
+    // Prompt mejorado para un diagrama C4 visualmente más limpio
     const systemPrompt = `<role>
-You are a Software Architect. You must generate a diagram using STANDARD Mermaid.js Flowchart syntax.
+You are a Senior Software Architect. You must generate a clean, professional C4 Container Diagram using STANDARD Mermaid.js Flowchart syntax.
 </role>
 
 <CRITICAL_RULES>
-1. USE ONLY "graph TD" at the start.
-2. DO NOT use C4 syntax macros like Person(), Container(), System(), Component(). THESE CAUSE ERRORS.
-3. Use ONLY standard nodes:
-   - For Users/Actors: use id["👤 User Name"]
-   - For Services/App: use id["📦 Service Name"]
-   - For Databases: use id[("🗄️ Database Name")] (use the cylinder shape)
-4. Use 'subgraph' to group related components.
-5. NO special characters inside node IDs (use alphanumeric only).
-6. Labels must be inside quotes.
+1. USE 'graph LR' (Left-to-Right) layout for better flow readability.
+2. DO NOT use C4 syntax macros like Person(), Container(). Use only standard Mermaid nodes.
+3. NODE STYLING:
+   - User/Actor: id["👤 User Name"]
+   - Application/Service: id["📦 Service Name"]
+   - Database: id[("🗄️ Database Name")] (MUST use the cylinder shape)
+4. GROUPING: Use 'subgraph' to cluster related components logically (e.g., 'subgraph Supabase_Platform', 'subgraph External_Services'). This is key for a clean layout.
+5. CONNECTIONS:
+   - Keep arrow labels short and action-oriented (e.g., "Reads data", "Triggers", "Authenticates").
+   - Minimize crossing lines.
+6. NO special characters inside node IDs.
+7. Labels must be inside quotes.
 </CRITICAL_RULES>
 
 <goal>
-Visualize the high-level architecture based on the file tree. Abstract files into logical modules.
+Visualize the high-level architecture based on the file tree. Abstract files into logical modules and present a clean, easy-to-understand diagram.
 </goal>
 
 <output_format>
