@@ -163,7 +163,6 @@ export default function Home() {
                   repo={repo}
                   isGenerating={isGenerating && generatingRepoId === repo.github_repo_id}
                   onGenerateDiagram={() => handleGenerateDiagram(repo)}
-                  onViewDiagram={() => setSelectedRepo(repo)}
                 />
               ))}
             </div>

@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Eye, Sparkles, Loader2, Code, Terminal, Gem, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Repository } from '@/types/repository';
@@ -6,7 +7,6 @@ interface RepoCardProps {
   repo: Repository;
   isGenerating: boolean;
   onGenerateDiagram: () => void;
-  onViewDiagram: () => void;
 }
 
 const languageConfig: Record<string, { icon: React.ElementType; color: string; bg: string; ring: string }> = {
@@ -16,7 +16,8 @@ const languageConfig: Record<string, { icon: React.ElementType; color: string; b
   default: { icon: FolderOpen, color: 'text-primary', bg: 'bg-primary/10', ring: 'ring-primary/20' },
 };
 
-export function RepoCard({ repo, isGenerating, onGenerateDiagram, onViewDiagram }: RepoCardProps) {
+export function RepoCard({ repo, isGenerating, onGenerateDiagram }: RepoCardProps) {
+  const navigate = useNavigate();
   const fileCount = repo.file_tree?.filter(f => f.type === 'blob').length || 0;
   const language = 'TypeScript'; // Default, could be detected from repo
   const config = languageConfig[language] || languageConfig.default;
@@ -54,7 +55,7 @@ export function RepoCard({ repo, isGenerating, onGenerateDiagram, onViewDiagram 
           <Button
             variant="outline"
             className="w-full gap-2"
-            onClick={onViewDiagram}
+            onClick={() => navigate(`/repo/${repo.id}`)}
           >
             <Eye className="h-4 w-4" />
             View Diagram
