@@ -25,7 +25,7 @@ export function AppSidebar() {
   const { signOut } = useAuth();
 
   return (
-    <Sidebar className="border-r border-border bg-sidebar">
+    <Sidebar className="w-72 border-r border-[#232f48] bg-[#111722]">
       {/* Brand Section */}
       <SidebarHeader className="p-5">
         <div className="flex items-center gap-3">
@@ -33,8 +33,8 @@ export function AppSidebar() {
             <Zap className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold text-foreground">ArchGen</span>
-            <span className="text-xs text-muted-foreground">v1.0 Beta</span>
+            <span className="text-lg font-bold text-foreground font-space-grotesk">ArchGen</span>
+            <span className="text-xs text-[#92a4c9]">v1.0 Beta</span>
           </div>
         </div>
       </SidebarHeader>
@@ -50,8 +50,8 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === '/dashboard'}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                      activeClassName="bg-accent text-foreground"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[#92a4c9] transition-colors hover:bg-[#232f48] hover:text-foreground"
+                      activeClassName="bg-[#232f48] text-foreground"
                     >
                       <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
@@ -68,7 +68,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-3">
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          className="w-full justify-start gap-3 text-[#92a4c9] hover:bg-destructive/10 hover:text-destructive"
           onClick={signOut}
         >
           <LogOut className="h-5 w-5" />

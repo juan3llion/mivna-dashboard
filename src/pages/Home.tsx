@@ -103,15 +103,15 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-full bg-background p-6 lg:p-10">
+    <div className="min-h-full bg-[#101622] p-6 lg:p-10">
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
-        {/* Welcome Panel */}
-        <div className="flex flex-col gap-6 rounded-2xl border border-border bg-gradient-to-r from-card to-accent/20 p-6 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+        {/* Welcome Panel - ArchGen Feature Banner */}
+        <div className="flex flex-col gap-6 rounded-2xl border border-[#324467] bg-gradient-to-r from-[#111722] to-[#1a2333] p-6 shadow-lg sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-2">
-            <h2 className="text-2xl font-bold text-foreground">
+            <h2 className="text-2xl font-bold text-foreground font-space-grotesk">
               Welcome back, {displayName}! 👋
             </h2>
-            <p className="max-w-xl text-muted-foreground">
+            <p className="max-w-xl text-[#92a4c9] font-noto-sans">
               You have <span className="font-semibold text-primary">{diagramCount}</span> generated 
               {diagramCount === 1 ? ' architecture' : ' architectures'} ready for review. 
               {repositories.length > diagramCount && (
@@ -132,16 +132,16 @@ export default function Home() {
         <div className="flex flex-col gap-5">
           {/* Header with Search */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="text-xl font-bold text-foreground">Your Repositories</h3>
+            <h3 className="text-xl font-bold text-foreground font-space-grotesk">Your Repositories</h3>
             <div className="flex gap-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#92a4c9]" />
                 <Input
                   type="text"
                   placeholder="Search repositories..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 sm:w-64"
+                  className="w-full pl-9 sm:w-64 bg-[#1a1a1e] border-[#232f48] text-foreground placeholder-[#92a4c9] focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
               <Button variant="outline" size="icon">
@@ -153,7 +153,7 @@ export default function Home() {
           {/* Repository Grid */}
           {loadingRepos ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+              <Loader2 className="h-10 w-10 animate-spin text-[#92a4c9]" />
             </div>
           ) : filteredRepos.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -168,18 +168,18 @@ export default function Home() {
               ))}
             </div>
           ) : repositories.length > 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16">
-              <Search className="mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-lg font-medium text-foreground">No matching repositories</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#232f48] py-16">
+              <Search className="mb-4 h-12 w-12 text-[#92a4c9]/50" />
+              <p className="text-lg font-medium text-foreground font-space-grotesk">No matching repositories</p>
+              <p className="mt-1 text-sm text-[#92a4c9] font-noto-sans">
                 Try adjusting your search query
               </p>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16">
-              <FolderX className="mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-lg font-medium text-foreground">No repositories connected</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#232f48] py-16">
+              <FolderX className="mb-4 h-12 w-12 text-[#92a4c9]/50" />
+              <p className="text-lg font-medium text-foreground font-space-grotesk">No repositories connected</p>
+              <p className="mt-1 text-sm text-[#92a4c9] font-noto-sans">
                 Import your first repository to get started
               </p>
               <Button
