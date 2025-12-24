@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { cloudSupabase } from "@/integrations/cloud/client";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -125,7 +125,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col relative">
+    <div className="min-h-screen flex flex-col relative bg-background-dark">
       {/* Background Image with Blur Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center"
@@ -133,28 +133,28 @@ const Login = () => {
           backgroundImage: "url('https://images.unsplash.com/photo-1487958449943-2429e8be8625?q=80&w=2070')" 
         }}
       >
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-[#101622]/80 backdrop-blur-sm" />
       </div>
 
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center p-4 relative z-10">
-        {/* Glassmorphism Card */}
-        <div className="w-full max-w-md bg-background/10 dark:bg-background/80 backdrop-blur-xl rounded-2xl border border-border/20 p-8 shadow-2xl">
+        {/* Glassmorphism Card - ArchGen Design System */}
+        <div className="w-full max-w-md bg-[#1a1a1e]/90 backdrop-blur-xl rounded-xl border border-[#232f48] p-8 shadow-2xl">
           
-          {/* Icon */}
+          {/* Icon - Using Lucide LayoutGrid instead of Material Symbols */}
           <div className="flex justify-center mb-6">
-            <span className="material-symbols-outlined text-5xl text-foreground/90">
-              grid_view
-            </span>
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/20">
+              <LayoutGrid className="h-7 w-7 text-primary" />
+            </div>
           </div>
 
           {/* Title */}
           <h1 className="text-3xl font-bold text-foreground text-center mb-2 font-space-grotesk">
-            {isSignUp ? "Create Account" : "Welcome to Mivna"}
+            {isSignUp ? "Create Account" : "Welcome to ArchGen"}
           </h1>
           
           {/* Subtitle */}
-          <p className="text-muted-foreground text-center mb-8 font-noto-sans">
+          <p className="text-[#92a4c9] text-center mb-8 font-noto-sans">
             {isSignUp 
               ? "Join us to start scanning architectures" 
               : "Architectural scanning and importing for modern spatial design."}
@@ -163,7 +163,7 @@ const Login = () => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-foreground/80 mb-1.5 font-noto-sans">
+              <label className="block text-sm font-medium text-[#92a4c9] mb-1.5 font-noto-sans">
                 Email
               </label>
               <input
@@ -171,9 +171,10 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-lg bg-black/30 border border-border/30 
-                           text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 
-                           focus:ring-primary/50 focus:border-transparent transition-all font-noto-sans"
+                className="w-full px-4 py-3 rounded-lg bg-[#1a1a1e] border border-[#232f48] 
+                           text-foreground placeholder-[#92a4c9] 
+                           focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary 
+                           transition-all font-noto-sans"
               />
               {errors.email && (
                 <p className="text-destructive text-sm mt-1">{errors.email}</p>
@@ -181,7 +182,7 @@ const Login = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground/80 mb-1.5 font-noto-sans">
+              <label className="block text-sm font-medium text-[#92a4c9] mb-1.5 font-noto-sans">
                 Password
               </label>
               <div className="relative">
@@ -190,14 +191,15 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-lg bg-black/30 border border-border/30 
-                             text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 
-                             focus:ring-primary/50 focus:border-transparent transition-all pr-10 font-noto-sans"
+                  className="w-full px-4 py-3 rounded-lg bg-[#1a1a1e] border border-[#232f48] 
+                             text-foreground placeholder-[#92a4c9] 
+                             focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary 
+                             transition-all pr-10 font-noto-sans"
                 />
                 <button 
                   type="button" 
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#92a4c9] hover:text-foreground transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -206,18 +208,19 @@ const Login = () => {
                 <p className="text-destructive text-sm mt-1">{errors.password}</p>
               )}
               {isSignUp && !errors.password && (
-                <p className="text-muted-foreground text-xs mt-1">
+                <p className="text-[#92a4c9] text-xs mt-1">
                   Min 8 chars with lowercase, uppercase, number, and special character
                 </p>
               )}
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button - ArchGen Primary with glow */}
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3 px-4 rounded-lg bg-primary hover:bg-primary/90
-                         text-primary-foreground font-semibold font-space-grotesk
+                         text-primary-foreground font-bold font-space-grotesk
+                         shadow-lg shadow-primary/20 hover:shadow-primary/40
                          transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -226,7 +229,7 @@ const Login = () => {
           </form>
 
           {/* Toggle Sign In / Sign Up */}
-          <p className="text-center text-muted-foreground mt-6 text-sm font-noto-sans">
+          <p className="text-center text-[#92a4c9] mt-6 text-sm font-noto-sans">
             {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
             <button 
               type="button"
@@ -242,14 +245,14 @@ const Login = () => {
           </p>
 
           {/* Beta Notice */}
-          <p className="text-center text-muted-foreground/60 text-xs mt-6 font-noto-sans">
+          <p className="text-center text-[#92a4c9]/60 text-xs mt-6 font-noto-sans">
             No credit card required for Beta
           </p>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="relative z-10 py-4 text-center text-muted-foreground text-sm space-x-4 font-noto-sans">
+      <footer className="relative z-10 py-4 text-center text-[#92a4c9] text-sm space-x-4 font-noto-sans">
         <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
         <a href="#" className="hover:text-foreground transition-colors">Terms</a>
         <a href="#" className="hover:text-foreground transition-colors">Contact</a>

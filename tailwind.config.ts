@@ -14,11 +14,14 @@ export default {
   	},
   	extend: {
   		colors: {
-  			'primary-blue': '#197fe6',
-  			'background-light': '#f6f7f8',
-  			'background-dark': '#111921',
-  			'card-dark': '#1a222a',
-  			'border-dark': '#2a3441',
+  			// ArchGen Design System Colors
+  			'primary-blue': '#135bec',
+  			'background-light': '#f6f6f8',
+  			'background-dark': '#101622',
+  			'card-dark': '#1a1a1e',
+  			'border-dark': '#232f48',
+  			'text-muted': '#92a4c9',
+  			'sidebar-bg': '#111722',
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

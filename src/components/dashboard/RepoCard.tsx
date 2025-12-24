@@ -9,11 +9,11 @@ interface RepoCardProps {
   onViewDiagram: () => void;
 }
 
-const languageConfig: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
-  TypeScript: { icon: Code, color: 'text-blue-400', bg: 'bg-blue-500/20' },
-  JavaScript: { icon: Terminal, color: 'text-yellow-400', bg: 'bg-yellow-500/20' },
-  Python: { icon: Gem, color: 'text-green-400', bg: 'bg-green-500/20' },
-  default: { icon: FolderOpen, color: 'text-primary', bg: 'bg-primary/20' },
+const languageConfig: Record<string, { icon: React.ElementType; color: string; bg: string; ring: string }> = {
+  TypeScript: { icon: Code, color: 'text-blue-400', bg: 'bg-blue-400/10', ring: 'ring-blue-400/20' },
+  JavaScript: { icon: Terminal, color: 'text-yellow-400', bg: 'bg-yellow-400/10', ring: 'ring-yellow-400/20' },
+  Python: { icon: Gem, color: 'text-green-400', bg: 'bg-green-400/10', ring: 'ring-green-400/20' },
+  default: { icon: FolderOpen, color: 'text-primary', bg: 'bg-primary/10', ring: 'ring-primary/20' },
 };
 
 export function RepoCard({ repo, isGenerating, onGenerateDiagram, onViewDiagram }: RepoCardProps) {
@@ -28,21 +28,22 @@ export function RepoCard({ repo, isGenerating, onGenerateDiagram, onViewDiagram 
   };
 
   return (
-    <div className="group flex flex-col gap-4 rounded-xl border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-xl">
+    <div className="group flex flex-col gap-4 rounded-xl border border-[#232f48] bg-[#1a1a1e] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${config.bg}`}>
           <IconComponent className={`h-6 w-6 ${config.color}`} />
         </div>
-        <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+        {/* Language Badge - ArchGen Design System */}
+        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${config.bg} ${config.color} ${config.ring}`}>
           {language}
         </span>
       </div>
 
       {/* Content */}
       <div className="flex flex-col gap-2">
-        <h3 className="text-lg font-bold text-foreground">{repo.name}</h3>
-        <p className="line-clamp-2 text-sm text-muted-foreground">
+        <h3 className="text-lg font-bold text-foreground font-space-grotesk">{repo.name}</h3>
+        <p className="line-clamp-2 text-sm text-[#92a4c9] font-noto-sans">
           {fileCount} files indexed • Updated {formatDate(repo.updated_at)}
         </p>
       </div>
@@ -52,7 +53,7 @@ export function RepoCard({ repo, isGenerating, onGenerateDiagram, onViewDiagram 
         {repo.diagram_code ? (
           <Button
             variant="outline"
-            className="w-full gap-2 border-border hover:border-primary/50 hover:bg-primary/5"
+            className="w-full gap-2"
             onClick={onViewDiagram}
           >
             <Eye className="h-4 w-4" />
