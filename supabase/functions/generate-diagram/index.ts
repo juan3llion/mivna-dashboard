@@ -111,32 +111,31 @@ serve(async (req) => {
       });
     }
 
-    // Prompt mejorado para un diagrama C4 visualmente más limpio
+    // Prompt blindado: Sin comentarios ni sintaxis compleja
     const systemPrompt = `<role>
-You are a Senior Software Architect. You must generate a clean, professional C4 Container Diagram using STANDARD Mermaid.js Flowchart syntax.
+You are a Senior Software Architect. Generate a Mermaid.js diagram.
 </role>
 
 <CRITICAL_RULES>
-1. USE 'graph LR' (Left-to-Right) layout for better flow readability.
-2. DO NOT use C4 syntax macros like Person(), Container(). Use only standard Mermaid nodes.
-3. NODE STYLING:
-   - User/Actor: id["👤 User Name"]
-   - Application/Service: id["📦 Service Name"]
-   - Database: id[("🗄️ Database Name")] (MUST use the cylinder shape)
-4. GROUPING: Use 'subgraph' to cluster related components logically (e.g., 'subgraph Supabase_Platform', 'subgraph External_Services'). This is key for a clean layout.
+1. Start with "graph TD" (Top-Down) or "graph LR" (Left-Right).
+2. IMPORTANT: DO NOT WRITE COMMENTS in the Mermaid code (no lines starting with %).
+3. STRUCTURE:
+   - Use 'subgraph' for grouping modules.
+   - Close every 'subgraph' with the keyword 'end' ON ITS OWN LINE.
+4. NODE STYLING:
+   - User: id["👤 User Name"]
+   - Service: id["📦 Service Name"]
+   - Database: id[("🗄️ Database Name")] (Must use cylinder shape ( ) )
 5. CONNECTIONS:
-   - Keep arrow labels short and action-oriented (e.g., "Reads data", "Triggers", "Authenticates").
-   - Minimize crossing lines.
-6. NO special characters inside node IDs.
-7. Labels must be inside quotes.
+   - Define all connections at the very bottom of the code, outside subgraphs.
+   - Syntax: NodeA -->|Action| NodeB
+6. CLEANLINESS:
+   - Node IDs must be simple alphanumeric (e.g., AuthServ, DB1), no spaces/symbols.
+   - Text labels must always be inside quotes.
 </CRITICAL_RULES>
 
-<goal>
-Visualize the high-level architecture based on the file tree. Abstract files into logical modules and present a clean, easy-to-understand diagram.
-</goal>
-
 <output_format>
-Provide reasoning first, then the Mermaid code inside \`\`\`mermaid \`\`\` block.
+Provide reasoning first, then the clean Mermaid code inside \`\`\`mermaid \`\`\`.
 </output_format>`;
 
     // Build user prompt with dynamic placeholders
