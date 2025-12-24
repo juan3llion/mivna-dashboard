@@ -175,7 +175,8 @@ ${codeSummaries}
     // 1. Inicializar el modelo con la SDK oficial
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     // Usamos 'gemini-1.5-flash' porque es rápido y estable para este caso
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Usamos el modelo exacto que aparece en tu lista (Gemini 2.5 Flash)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // 2. Ejecutar la generación (Unimos System Prompt + User Prompt)
     const result = await model.generateContent(systemPrompt + "\n\n" + userPrompt);
