@@ -8,6 +8,7 @@ import Home from "@/pages/Home";
 import Repositories from "@/pages/Repositories";
 import Diagrams from "@/pages/Diagrams";
 import Settings from "@/pages/Settings";
+import RepoDetails from "@/pages/RepoDetails";
 import NotFound from "@/pages/NotFound";
 import AuthCallback from "@/pages/AuthCallback";
 import RootRedirect from "@/pages/RootRedirect";
@@ -62,6 +63,14 @@ function App() {
                 <DashboardLayout>
                   <Settings />
                 </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/repo/:id"
+            element={
+              <ProtectedRoute>
+                <RepoDetails />
               </ProtectedRoute>
             }
           />
