@@ -16,21 +16,21 @@ function extractMermaidCode(response: string): string {
     console.log("✅ Extracted Mermaid code from ```mermaid block");
     return mermaidBlockMatch[1].trim();
   }
-  
+
   // Fallback: try to find any code block
   const codeBlockMatch = response.match(/```\s*([\s\S]*?)```/);
   if (codeBlockMatch && codeBlockMatch[1]) {
     console.log("✅ Extracted code from generic ``` block");
     return codeBlockMatch[1].trim();
   }
-  
+
   // Last resort: try to find graph TD or similar Mermaid starting patterns
   const graphMatch = response.match(/(graph\s+(?:TD|TB|LR|RL|BT)[\s\S]*)/i);
   if (graphMatch) {
     console.log("✅ Extracted Mermaid code from graph pattern match");
     return graphMatch[1].trim();
   }
-  
+
   // Return cleaned response if no pattern found
   console.log("⚠️ No Mermaid block found, returning cleaned response");
   return response.trim();
@@ -43,13 +43,13 @@ serve(async (req) => {
 
   try {
     const { github_repo_id } = await req.json();
-    
+
     if (!github_repo_id) {
       console.error("❌ Missing github_repo_id");
-      return new Response(
-        JSON.stringify({ error: "github_repo_id is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "github_repo_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log(`🚀 Starting diagram generation for repo ID: ${github_repo_id}`);
@@ -60,10 +60,10 @@ serve(async (req) => {
 
     if (!externalSupabaseUrl || !externalSupabaseKey) {
       console.error("❌ Missing external Supabase credentials");
-      return new Response(
-        JSON.stringify({ error: "External Supabase not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "External Supabase not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabase = createClient(externalSupabaseUrl, externalSupabaseKey);
@@ -78,20 +78,20 @@ serve(async (req) => {
 
     if (fetchError || !repo) {
       console.error("❌ Repository not found:", fetchError);
-      return new Response(
-        JSON.stringify({ error: "Repository not found", details: fetchError?.message }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Repository not found", details: fetchError?.message }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log(`✅ Found repository: ${repo.full_name || repo.name}`);
     console.log(`📁 File tree items: ${Array.isArray(repo.file_tree) ? repo.file_tree.length : 0}`);
 
     if (!repo.file_tree || !Array.isArray(repo.file_tree) || repo.file_tree.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Repository has no file tree data" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Repository has no file tree data" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Prepare file structure for AI analysis
@@ -102,13 +102,13 @@ serve(async (req) => {
     console.log(`📝 Prepared file tree (${fileTree.length} chars)`);
 
     // Call Lovable AI Gateway
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("❌ LOVABLE_API_KEY not configured");
-      return new Response(
-        JSON.stringify({ error: "AI service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY"); // <--- Usamos tu llave de Gemini
+    if (!GEMINI_API_KEY) {
+      console.error("❌ GEMINI_API_KEY not configured");
+      return new Response(JSON.stringify({ error: "AI service not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // New optimized Senior Architect prompt
@@ -156,8 +156,9 @@ Resulting Node: Container(Auth_Module, "Authentication Service", "Handles user l
 </instructions>`;
 
     // Build user prompt with dynamic placeholders
-    const codeSummaries = "No code summaries available. Please infer architecture from file names and folder structure.";
-    
+    const codeSummaries =
+      "No code summaries available. Please infer architecture from file names and folder structure.";
+
     const userPrompt = `<input_data>
 <file_tree>
 ${fileTree}
@@ -169,7 +170,7 @@ ${codeSummaries}
 </input_data>`;
 
     console.log("🤖 Calling Lovable AI Gateway with optimized prompt...");
-    
+
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -188,29 +189,29 @@ ${codeSummaries}
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error(`❌ AI Gateway error: ${aiResponse.status}`, errorText);
-      
+
       if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add funds." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
-      
-      return new Response(
-        JSON.stringify({ error: "AI service error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      return new Response(JSON.stringify({ error: "AI service error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const aiData = await aiResponse.json();
     const rawResponse = aiData.choices?.[0]?.message?.content || "";
-    
+
     console.log(`📝 Raw AI response length: ${rawResponse.length} chars`);
     console.log(`🧠 AI Reasoning preview: ${rawResponse.substring(0, 300)}...`);
 
@@ -229,28 +230,27 @@ ${codeSummaries}
 
     if (updateError) {
       console.error("❌ Failed to save diagram:", updateError);
-      return new Response(
-        JSON.stringify({ error: "Failed to save diagram", details: updateError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Failed to save diagram", details: updateError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("✅ Diagram saved successfully!");
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         diagram_code: diagramCode,
-        repo_name: repo.full_name || repo.name 
+        repo_name: repo.full_name || repo.name,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (error) {
     console.error("❌ Unexpected error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
