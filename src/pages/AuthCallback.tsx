@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { cloudSupabase } from '@/integrations/cloud/client';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 const AuthCallback = () => {
@@ -9,7 +9,7 @@ const AuthCallback = () => {
 
   useEffect(() => {
     // Set up auth state listener to wait for SIGNED_IN event
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = cloudSupabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('AuthCallback - Auth event:', event, 'Session:', !!session);
         
@@ -28,7 +28,7 @@ const AuthCallback = () => {
     );
 
     // Also check for existing session (in case user is already logged in)
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    cloudSupabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error('AuthCallback - getSession error:', error);
         setError(error.message);

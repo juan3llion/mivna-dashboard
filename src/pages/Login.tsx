@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { cloudSupabase } from "@/integrations/cloud/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +36,7 @@ const Login = () => {
         return;
       }
       
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await cloudSupabase.auth.getSession();
       if (session) {
         navigate("/dashboard");
       }
@@ -70,7 +70,7 @@ const Login = () => {
 
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await cloudSupabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -95,7 +95,7 @@ const Login = () => {
 
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signUp({
+      const { error } = await cloudSupabase.auth.signUp({
         email,
         password,
         options: {

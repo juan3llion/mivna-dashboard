@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { GitBranch, Share2, Activity, Zap, Github, Plus, Sparkles, Loader2, FileCode } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { cloudSupabase } from '@/integrations/cloud/client';
 import { toast } from 'sonner';
 import { externalSupabase } from '@/integrations/external-supabase/client';
 import { MermaidRenderer } from '@/components/diagrams/MermaidRenderer';
@@ -30,10 +30,10 @@ export default function Home() {
 
       if (installationId && setupAction === "install") {
         try {
-          const { data: { user } } = await supabase.auth.getUser();
+          const { data: { user } } = await cloudSupabase.auth.getUser();
           if (!user) return;
 
-          const { error } = await (supabase.from("user_installations" as any) as any).insert({
+          const { error } = await (cloudSupabase.from("user_installations" as any) as any).insert({
             user_id: user.id,
             installation_id: parseInt(installationId),
           });
