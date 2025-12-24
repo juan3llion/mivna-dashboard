@@ -3,24 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GitBranch, Plus, Search, FolderGit2, Sparkles, Loader2, FileCode } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
+import { externalSupabase } from '@/integrations/external-supabase/client';
 import { MermaidRenderer } from '@/components/diagrams/MermaidRenderer';
 import { useGenerateDiagram } from '@/hooks/useGenerateDiagram';
-
-interface Repository {
-  id: string;
-  github_repo_id: number;
-  name: string;
-  full_name: string;
-  file_tree: { path: string; type: string }[] | null;
-  diagram_code: string | null;
-}
-
-// External Supabase client for fetching repos
-const externalSupabase = createClient(
-  'https://awocsqhjcsmetezjqibo.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3b2NzcWhqY3NtZXRlempxaWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MTY2NTAsImV4cCI6MjA2NTQ5MjY1MH0.57F0zg0lWpKLJ6N8vEpHLSUIkvcOXV5bF7O06AWrjXw'
-);
+import type { Repository } from '@/types/repository';
 
 export default function Repositories() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
@@ -37,7 +23,7 @@ export default function Repositories() {
     setLoading(true);
     const { data, error } = await externalSupabase
       .from('repositories')
-      .select('id, github_repo_id, name, full_name, file_tree, diagram_code')
+      .select('id, github_repo_id, name, file_tree, diagram_code, user_id, created_at, updated_at')
       .order('updated_at', { ascending: false });
 
     if (error) {
@@ -67,7 +53,7 @@ export default function Repositories() {
   };
 
   const filteredRepos = repositories.filter(repo => 
-    (repo.full_name || repo.name || '').toLowerCase().includes(searchQuery.toLowerCase())
+    (repo.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const fileCount = (repo: Repository) => 
@@ -154,7 +140,7 @@ export default function Repositories() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <GitBranch className="h-5 w-5" />
-                      {repo.full_name || repo.name}
+                      {repo.name}
                     </CardTitle>
                     <CardDescription className="flex items-center gap-4 mt-1">
                       <span className="flex items-center gap-1">
