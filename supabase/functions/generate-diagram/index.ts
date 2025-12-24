@@ -112,48 +112,30 @@ serve(async (req) => {
     }
 
     // New optimized Senior Architect prompt
+    // Prompt blindado para evitar errores de sintaxis
     const systemPrompt = `<role>
-You are a Senior Software Architect and Technical Documentation Expert, specializing in the C4 Model and Mermaid.js. Your analytical capacity allows you to filter out "code noise" and visualize high-level architecture with clarity and professional precision.
+You are a Software Architect. You must generate a diagram using STANDARD Mermaid.js Flowchart syntax.
 </role>
 
+<CRITICAL_RULES>
+1. USE ONLY "graph TD" at the start.
+2. DO NOT use C4 syntax macros like Person(), Container(), System(), Component(). THESE CAUSE ERRORS.
+3. Use ONLY standard nodes:
+   - For Users/Actors: use id["👤 User Name"]
+   - For Services/App: use id["📦 Service Name"]
+   - For Databases: use id[("🗄️ Database Name")] (use the cylinder shape)
+4. Use 'subgraph' to group related components.
+5. NO special characters inside node IDs (use alphanumeric only).
+6. Labels must be inside quotes.
+</CRITICAL_RULES>
+
 <goal>
-Your objective is to transform a file tree (<file_tree>) and code summaries (<file_contents>) into a precise C4 Container Diagram using exclusively Mermaid.js syntax. The output must prioritize READABILITY and LOGICAL STRUCTURE over exhaustive file-level detail.
+Visualize the high-level architecture based on the file tree. Abstract files into logical modules.
 </goal>
 
-<rules>
-1. ABSTRACTION PRINCIPLE: DO NOT map individual files as nodes. Group related files into "Logical Modules" (e.g., "Core Engine", "Auth Service", "Shared UI"). Ignore configuration files (eslint, vite, tsconfig) and type/interface files unless they are central to the architecture.
-
-2. STRICT MERMAID SYNTAX:
-   - Use exclusively graph TD (Top-Down).
-   - Implement subgraph to cluster related components (Frontend, Backend, Database, Cloud Services).
-   - Represent database nodes using cylinder shapes or distinct styling if possible.
-
-3. ANTI-SPAGHETTI RULES:
-   - Minimize crossing lines to ensure a clean layout.
-   - Arrows MUST represent "Data Flow" or "Functional Dependencies", not "file imports".
-   - Label every arrow with a clear action verb (e.g., "Sends requests", "Persists data", "Triggers events").
-
-4. CHAIN-OF-THOUGHT (Reasoning Step): Before generating the code, you MUST provide a brief analysis identifying the logical modules and explaining the grouping criteria.
-
-5. OUTPUT FORMAT: Deliver the reasoning first, followed by a single, functional Mermaid code block wrapped in \`\`\`mermaid and \`\`\`.
-</rules>
-
-<context>
-The user will provide information in the following placeholders:
-- <file_tree>: The project's directory structure.
-- <file_contents>: Key snippets of the source code.
-
-Expected Abstraction Example:
-If you see: src/auth/login.ts, src/auth/register.ts, src/auth/session.ts.
-Resulting Node: Container(Auth_Module, "Authentication Service", "Handles user lifecycle and sessions").
-</context>
-
-<instructions>
-1. Analyze the data provided in <file_tree> and <file_contents>.
-2. Identify the system boundaries and the main architectural containers.
-3. Generate the diagram ensuring the Mermaid syntax is compatible with standard renderers (avoid experimental features).
-4. If a module's purpose is ambiguous, group it into the most likely logical category based on naming conventions and folder location.
-</instructions>`;
+<output_format>
+Provide reasoning first, then the Mermaid code inside \`\`\`mermaid \`\`\` block.
+</output_format>`;
 
     // Build user prompt with dynamic placeholders
     const codeSummaries =
