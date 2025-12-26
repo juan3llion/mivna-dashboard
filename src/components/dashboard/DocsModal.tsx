@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import type { Repository } from '@/types/repository';
 
 interface DocsModalProps {
@@ -19,33 +20,45 @@ export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: D
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerateDocs = async () => {
-    if (!repo?.github_repo_id) return;
+    if (!repo?.github_repo_id) {
+      console.error('❌ No github_repo_id available on repo:', repo);
+      toast.error('Repository is missing GitHub ID');
+      return;
+    }
 
     setIsGenerating(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-documentation`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ github_repo_id: repo.github_repo_id }),
-        }
-      );
+      // Debug logging before the call
+      console.log('🚀 Invoking generate-documentation with:', { 
+        github_repo_id: repo.github_repo_id,
+        repo_name: repo.name,
+        supabase_id: repo.id // This is NOT what we send, just for debug
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate documentation');
+      const { data, error } = await supabase.functions.invoke('generate-documentation', {
+        body: { github_repo_id: repo.github_repo_id }
+      });
+
+      if (error) {
+        console.error('🔥 Supabase function error:', error);
+        throw error;
       }
 
-      const { documentation } = await response.json();
-      onDocumentationGenerated(repo.id, documentation);
-      toast.success('Documentation generated successfully!');
+      console.log('✅ Generation success:', data);
+      
+      if (data?.documentation) {
+        onDocumentationGenerated(repo.id, data.documentation);
+        toast.success('Documentation generated successfully!');
+      } else {
+        throw new Error('No documentation returned from API');
+      }
     } catch (error) {
-      console.error('Error generating documentation:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to generate documentation');
+      console.error('🔥 Error generating docs:', error);
+      toast.error(
+        error instanceof Error 
+          ? error.message 
+          : 'Failed to generate documentation'
+      );
     } finally {
       setIsGenerating(false);
     }
