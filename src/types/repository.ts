@@ -9,4 +9,5 @@ export interface Repository {
   updated_at: string;
   description?: string | null;
   url?: string | null;
+  documentation_md?: string | null;
 }

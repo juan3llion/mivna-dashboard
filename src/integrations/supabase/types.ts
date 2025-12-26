@@ -72,6 +72,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          documentation_md: string | null
           file_tree: Json | null
           github_repo_id: number | null
           id: string
@@ -83,6 +84,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          documentation_md?: string | null
           file_tree?: Json | null
           github_repo_id?: number | null
           id?: string
@@ -94,6 +96,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          documentation_md?: string | null
           file_tree?: Json | null
           github_repo_id?: number | null
           id?: string

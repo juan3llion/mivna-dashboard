@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Eye, Sparkles, Loader2, Code, Terminal, Gem, FolderOpen } from 'lucide-react';
+import { Eye, Sparkles, Loader2, Code, Terminal, Gem, FolderOpen, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Repository } from '@/types/repository';
 
@@ -7,6 +7,7 @@ interface RepoCardProps {
   repo: Repository;
   isGenerating: boolean;
   onGenerateDiagram: () => void;
+  onOpenDocs: () => void;
 }
 
 const languageConfig: Record<string, { icon: React.ElementType; color: string; bg: string; ring: string }> = {
@@ -16,7 +17,7 @@ const languageConfig: Record<string, { icon: React.ElementType; color: string; b
   default: { icon: FolderOpen, color: 'text-primary', bg: 'bg-primary/10', ring: 'ring-primary/20' },
 };
 
-export function RepoCard({ repo, isGenerating, onGenerateDiagram }: RepoCardProps) {
+export function RepoCard({ repo, isGenerating, onGenerateDiagram, onOpenDocs }: RepoCardProps) {
   const navigate = useNavigate();
   const fileCount = repo.file_tree?.filter(f => f.type === 'blob').length || 0;
   const language = 'TypeScript'; // Default, could be detected from repo
@@ -49,17 +50,27 @@ export function RepoCard({ repo, isGenerating, onGenerateDiagram }: RepoCardProp
         </p>
       </div>
 
-      {/* Action Button */}
-      <div className="mt-auto pt-2">
+      {/* Action Buttons */}
+      <div className="mt-auto pt-2 flex gap-2">
         {repo.diagram_code ? (
-          <Button
-            variant="outline"
-            className="w-full gap-2"
-            onClick={() => navigate(`/repo/${repo.id}`)}
-          >
-            <Eye className="h-4 w-4" />
-            View Diagram
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              className="flex-1 gap-2"
+              onClick={() => navigate(`/repo/${repo.id}`)}
+            >
+              <Eye className="h-4 w-4" />
+              View Diagram
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={onOpenDocs}
+            >
+              <FileText className="h-4 w-4" />
+              Docs
+            </Button>
+          </>
         ) : (
           <Button
             className="w-full gap-2"

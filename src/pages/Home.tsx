@@ -9,6 +9,7 @@ import { externalSupabase } from '@/integrations/external-supabase/client';
 import { useGenerateDiagram } from '@/hooks/useGenerateDiagram';
 import { RepoCard } from '@/components/dashboard/RepoCard';
 import { DiagramViewerModal } from '@/components/dashboard/DiagramViewerModal';
+import { DocsModal } from '@/components/dashboard/DocsModal';
 import { Input } from '@/components/ui/input';
 import type { Repository } from '@/types/repository';
 
@@ -22,6 +23,7 @@ export default function Home() {
   const [generatingRepoId, setGeneratingRepoId] = useState<number | null>(null);
   const [selectedRepo, setSelectedRepo] = useState<Repository | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [docsModalRepo, setDocsModalRepo] = useState<Repository | null>(null);
   
   const GITHUB_APP_INSTALL_URL = "https://github.com/apps/mivna-architect-bot";
 
@@ -67,7 +69,7 @@ export default function Home() {
     setLoadingRepos(true);
     const { data, error } = await externalSupabase
       .from('repositories')
-      .select('id, github_repo_id, name, file_tree, diagram_code, user_id, created_at, updated_at')
+      .select('id, github_repo_id, name, file_tree, diagram_code, user_id, created_at, updated_at, documentation_md')
       .order('updated_at', { ascending: false });
 
     if (error) {
@@ -94,6 +96,22 @@ export default function Home() {
       );
     }
     setGeneratingRepoId(null);
+  };
+
+  const handleDocumentationGenerated = (repoId: string, documentation: string) => {
+    setRepositories(prev =>
+      prev.map(r =>
+        r.id === repoId
+          ? { ...r, documentation_md: documentation }
+          : r
+      )
+    );
+    // Update the modal's repo as well
+    setDocsModalRepo(prev => 
+      prev?.id === repoId 
+        ? { ...prev, documentation_md: documentation }
+        : prev
+    );
   };
 
   const diagramCount = repositories.filter(r => r.diagram_code).length;
@@ -163,6 +181,7 @@ export default function Home() {
                   repo={repo}
                   isGenerating={isGenerating && generatingRepoId === repo.github_repo_id}
                   onGenerateDiagram={() => handleGenerateDiagram(repo)}
+                  onOpenDocs={() => setDocsModalRepo(repo)}
                 />
               ))}
             </div>
@@ -197,6 +216,14 @@ export default function Home() {
       <DiagramViewerModal
         repo={selectedRepo}
         onClose={() => setSelectedRepo(null)}
+      />
+
+      {/* Documentation Modal */}
+      <DocsModal
+        repo={docsModalRepo}
+        isOpen={!!docsModalRepo}
+        onClose={() => setDocsModalRepo(null)}
+        onDocumentationGenerated={handleDocumentationGenerated}
       />
     </div>
   );
