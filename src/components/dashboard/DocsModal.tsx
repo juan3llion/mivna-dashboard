@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Loader2, FileText } from 'lucide-react';
+import { Sparkles, Loader2, FileText, RefreshCw, Download, Copy, Check } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -18,6 +18,33 @@ interface DocsModalProps {
 
 export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: DocsModalProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasCopied, setHasCopied] = useState(false);
+
+  const handleCopyMarkdown = async () => {
+    if (!repo?.documentation_md) return;
+    
+    await navigator.clipboard.writeText(repo.documentation_md);
+    setHasCopied(true);
+    toast.success('Markdown copied to clipboard!');
+    
+    setTimeout(() => setHasCopied(false), 2000);
+  };
+
+  const handleDownloadMarkdown = () => {
+    if (!repo?.documentation_md) return;
+    
+    const blob = new Blob([repo.documentation_md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${repo.name}-README.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success('Documentation downloaded!');
+  };
 
   const handleGenerateDocs = async () => {
     if (!repo?.github_repo_id) {
@@ -48,7 +75,7 @@ export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: D
       
       if (data?.documentation) {
         onDocumentationGenerated(repo.id, data.documentation);
-        toast.success('Documentation generated successfully!');
+        toast.success(repo?.documentation_md ? 'Documentation updated!' : 'Documentation generated successfully!');
       } else {
         throw new Error('No documentation returned from API');
       }
@@ -67,12 +94,59 @@ export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: D
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col bg-[#1a1a1e] border-[#232f48]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-foreground font-space-grotesk">
-            <FileText className="h-5 w-5 text-primary" />
-            Repository Documentation
-            {repo && <span className="text-[#92a4c9] font-normal">— {repo.name}</span>}
-          </DialogTitle>
+        <DialogHeader className="flex-shrink-0">
+          <div className="flex items-center justify-between gap-4">
+            <DialogTitle className="flex items-center gap-2 text-foreground font-space-grotesk">
+              <FileText className="h-5 w-5 text-primary" />
+              Repository Documentation
+              {repo && <span className="text-[#92a4c9] font-normal">— {repo.name}</span>}
+            </DialogTitle>
+            
+            {repo?.documentation_md && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateDocs}
+                  disabled={isGenerating}
+                  className="gap-1.5 border-[#232f48] text-[#92a4c9] hover:text-white hover:bg-[#232f48]"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  {isGenerating ? 'Regenerating...' : 'Regenerate'}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadMarkdown}
+                  disabled={isGenerating}
+                  className="gap-1.5 border-[#232f48] text-[#92a4c9] hover:text-white hover:bg-[#232f48]"
+                >
+                  <Download className="h-4 w-4" />
+                  Download
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyMarkdown}
+                  disabled={isGenerating}
+                  className="gap-1.5 border-[#232f48] text-[#92a4c9] hover:text-white hover:bg-[#232f48]"
+                >
+                  {hasCopied ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  {hasCopied ? 'Copied!' : 'Copy'}
+                </Button>
+              </div>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="flex-1 min-h-0">
