@@ -5,8 +5,6 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import Login from "@/pages/Login";
 import Home from "@/pages/Home";
-import Repositories from "@/pages/Repositories";
-import Diagrams from "@/pages/Diagrams";
 import Settings from "@/pages/Settings";
 import RepoDetails from "@/pages/RepoDetails";
 import NotFound from "@/pages/NotFound";
@@ -32,26 +30,6 @@ function App() {
               <ProtectedRoute>
                 <DashboardLayout>
                   <Home />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/repositories"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Repositories />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/diagrams"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Diagrams />
                 </DashboardLayout>
               </ProtectedRoute>
             }
