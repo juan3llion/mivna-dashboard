@@ -4,40 +4,38 @@ import { useControls, useTransformComponent } from "react-zoom-pan-pinch";
 type DiagramToolbarProps = {
   onDownloadPNG: () => void;
   onCopyMermaid: () => void;
-  minScale?: number;
-  maxScale?: number;
   zoomMultiplier?: number;
   animationTime?: number;
 };
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
 export function DiagramToolbar({
   onDownloadPNG,
   onCopyMermaid,
-  minScale = 0.1,
-  maxScale = 64,
   zoomMultiplier = 1.8,
   animationTime = 200,
 }: DiagramToolbarProps) {
-  const { setTransform, resetTransform } = useControls();
+  const { zoomIn, zoomOut, resetTransform } = useControls();
 
-  const { scale, positionX, positionY } = useTransformComponent(({ state }) => state);
+  const { scale } = useTransformComponent(({ state }) => state);
+
+  // react-zoom-pan-pinch uses a "step" value where 0.8 ~= 1.8x per click.
+  const step = Math.max(0.05, zoomMultiplier - 1);
 
   const handleZoomIn = () => {
-    setTransform(positionX, positionY, clamp(scale * zoomMultiplier, minScale, maxScale), animationTime);
+    zoomIn(step, animationTime);
   };
 
   const handleZoomOut = () => {
-    setTransform(positionX, positionY, clamp(scale / zoomMultiplier, minScale, maxScale), animationTime);
+    zoomOut(step, animationTime);
   };
 
   const handleReset = () => {
     resetTransform(animationTime);
   };
 
+
   return (
-    <div className="absolute top-4 left-4 z-20 flex items-center gap-2 p-1.5 bg-[#161b26]/90 backdrop-blur-sm rounded-xl border border-[#232f48] shadow-xl">
+    <div className="diagram-toolbar absolute top-4 left-4 z-20 flex items-center gap-2 p-1.5 bg-[#161b26]/90 backdrop-blur-sm rounded-xl border border-[#232f48] shadow-xl">
       <button
         onClick={handleZoomIn}
         className="p-2 rounded-lg hover:bg-[#232f48] transition-colors"
