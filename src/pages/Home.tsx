@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search, Filter, Loader2, FolderX, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { cloudSupabase } from '@/integrations/cloud/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { externalSupabase } from '@/integrations/external-supabase/client';
 import { useGenerateDiagram } from '@/hooks/useGenerateDiagram';
@@ -32,7 +32,7 @@ export default function Home() {
     setIsSyncing(true);
     
     try {
-      const { data: { session }, error: sessionError } = await cloudSupabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session) {
         toast.error('Please log in to sync repositories');
@@ -49,7 +49,7 @@ export default function Home() {
 
       console.log('🔄 Starting repository sync...');
       
-      const { data, error } = await cloudSupabase.functions.invoke('sync-repos', {
+      const { data, error } = await supabase.functions.invoke('sync-repos', {
         body: { 
           github_access_token: providerToken,
           user_id: session.user.id
@@ -79,10 +79,10 @@ export default function Home() {
 
       if (installationId && setupAction === "install") {
         try {
-          const { data: { user } } = await cloudSupabase.auth.getUser();
+          const { data: { user } } = await supabase.auth.getUser();
           if (!user) return;
 
-          const { error } = await (cloudSupabase.from("user_installations" as any) as any).insert({
+          const { error } = await (supabase.from("user_installations" as any) as any).insert({
             user_id: user.id,
             installation_id: parseInt(installationId),
           });
