@@ -93,9 +93,9 @@ export function MermaidRenderer({ content, onNodeClick }: MermaidRendererProps) 
   }
 
   return (
-    <div 
-      ref={containerRef} 
-      className="flex items-center justify-center h-full overflow-auto p-4 [&>svg]:max-w-full [&>svg]:h-auto"
+    <div
+      ref={containerRef}
+      className="flex items-center justify-center h-full overflow-visible p-4 [&>svg]:max-w-none [&>svg]:h-auto"
     />
   );
 }
