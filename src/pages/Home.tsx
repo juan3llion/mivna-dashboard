@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import type { Repository } from '@/types/repository';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [searchParams] = useSearchParams();
   const displayName = user?.email?.split('@')[0] || 'Developer';
   const [repositories, setRepositories] = useState<Repository[]>([]);
@@ -32,26 +32,40 @@ export default function Home() {
     setIsSyncing(true);
     
     try {
+      // Step 1: Get session explicitly
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError || !session) {
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        toast.error('Failed to retrieve session. Please try again.');
+        return;
+      }
+      
+      if (!session) {
         toast.error('Please log in to sync repositories');
         return;
       }
       
-      const providerToken = session.provider_token;
+      // Step 2: Debug log the provider token
+      console.log('🔍 DEBUG - GitHub Token:', session.provider_token);
+      console.log('🔍 DEBUG - Session user:', session.user.email);
       
-      // User must be logged in via GitHub to have a provider_token
-      if (!providerToken) {
-        toast.error('Please log out and sign in with GitHub to sync repositories');
+      // Step 3: Critical token check - NEVER call edge function without valid token
+      if (!session.provider_token) {
+        console.warn('⚠️ GitHub provider_token is missing! Forcing re-authentication...');
+        toast.error('GitHub connection expired. Please log in again.');
+        
+        // Force logout to clear stale session and redirect to login
+        await signOut();
         return;
       }
-
-      console.log('🔄 Starting repository sync...');
+      
+      // Step 4: Token is present - proceed with sync
+      console.log('🔄 Starting repository sync with valid token...');
       
       const { data, error } = await supabase.functions.invoke('sync-repos', {
         body: { 
-          github_access_token: providerToken,
+          github_access_token: session.provider_token,
           user_id: session.user.id
         }
       });
@@ -64,7 +78,7 @@ export default function Home() {
       await fetchRepositories();
       
     } catch (error) {
-      console.error('Sync error:', error);
+      console.error('❌ Sync error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to sync repositories');
     } finally {
       setIsSyncing(false);
