@@ -203,19 +203,14 @@ export default function RepoDetails() {
                 centerOnInit
                 limitToBounds={false}
                 wheel={{ step: 0.3 }}
+                panning={{ excluded: ["diagram-toolbar"] }}
               >
                 <DiagramToolbar onCopyMermaid={handleCopyMermaid} onDownloadPNG={handleDownloadPNG} />
                 <TransformComponent
                   wrapperStyle={{ width: '100%', height: '100%' }}
-                  contentStyle={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+                  contentStyle={{ width: 'fit-content', height: 'fit-content' }}
                 >
-                  <div className="p-8">
+                  <div className="p-8 inline-block">
                     <MermaidRenderer content={repository.diagram_code} onNodeClick={handleNodeClick} />
                   </div>
                 </TransformComponent>
