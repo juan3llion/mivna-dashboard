@@ -42,6 +42,54 @@ serve(async (req) => {
   }
 
   try {
+    // ═══════════════════════════════════════════════════════════
+    // 1. VALIDACIÓN DE USUARIO (External Supabase Auth)
+    // ═══════════════════════════════════════════════════════════
+    const authHeader = req.headers.get('Authorization');
+
+    if (!authHeader) {
+      console.error("❌ No Authorization header found");
+      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Limpiamos el token: quitamos 'Bearer ' si existe, y quitamos espacios en blanco
+    const token = authHeader.replace(/[Bb]earer\s+/, "").trim();
+
+    // Use EXTERNAL Supabase for auth validation (user is logged into external project)
+    const externalSupabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL");
+    const externalAnonKey = Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY");
+
+    if (!externalSupabaseUrl || !externalAnonKey) {
+      console.error("❌ Missing external Supabase credentials for auth");
+      return new Response(JSON.stringify({ error: "Auth service not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Create auth client with ANON key for user validation
+    const authSupabase = createClient(externalSupabaseUrl, externalAnonKey);
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser(token);
+
+    if (authError || !user) {
+      console.error("❌ User auth failed:", authError);
+      // Imprimimos el inicio del token para ver si se ve bien (solo por debug)
+      console.log(`Token preview: ${token.substring(0, 10)}...`);
+      
+      return new Response(JSON.stringify({ error: "Unauthorized", details: authError?.message }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log(`✅ User authenticated: ${user.email} (ID: ${user.id})`);
+
+    // ═══════════════════════════════════════════════════════════
+    // 2. PARSE REQUEST BODY
+    // ═══════════════════════════════════════════════════════════
     const { github_repo_id } = await req.json();
 
     if (!github_repo_id) {
@@ -54,19 +102,18 @@ serve(async (req) => {
 
     console.log(`🚀 Starting diagram generation for repo ID: ${github_repo_id}`);
 
-    // Connect to external Supabase
-    const externalSupabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL");
-    const externalSupabaseKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
+    // Connect to external Supabase with SERVICE_ROLE_KEY for data operations
+    const externalServiceRoleKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!externalSupabaseUrl || !externalSupabaseKey) {
-      console.error("❌ Missing external Supabase credentials");
+    if (!externalServiceRoleKey) {
+      console.error("❌ Missing external Supabase service role key");
       return new Response(JSON.stringify({ error: "External Supabase not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabase = createClient(externalSupabaseUrl, externalSupabaseKey);
+    const supabase = createClient(externalSupabaseUrl, externalServiceRoleKey);
 
     // Fetch the repository with file_tree
     console.log("📥 Fetching repository from database...");
