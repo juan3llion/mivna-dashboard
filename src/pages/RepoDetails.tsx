@@ -61,9 +61,13 @@ export default function RepoDetails() {
     fetchRepository();
   }, [id]);
 
-  const handleZoomIn = () => transformRef.current?.zoomIn();
-  const handleZoomOut = () => transformRef.current?.zoomOut();
-  const handleResetView = () => transformRef.current?.resetTransform();
+  // Zoom controls with increased step for more noticeable zoom
+  const ZOOM_STEP = 0.5;
+  const ZOOM_ANIMATION_TIME = 200;
+  
+  const handleZoomIn = () => transformRef.current?.zoomIn(ZOOM_STEP, ZOOM_ANIMATION_TIME);
+  const handleZoomOut = () => transformRef.current?.zoomOut(ZOOM_STEP, ZOOM_ANIMATION_TIME);
+  const handleResetView = () => transformRef.current?.resetTransform(ZOOM_ANIMATION_TIME);
 
   const handleCopyMermaid = () => {
     if (repository?.diagram_code) {
