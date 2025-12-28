@@ -2,13 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TransformWrapper, TransformComponent, ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import { 
-  LayoutGrid, Folder, Settings2, Plus, Minus, Maximize2, 
-  Download, Code, Bell, X, Info, Activity, Cpu, Server, 
-  Shield, FolderOpen, ExternalLink, Sparkles, ArrowLeft,
-  ChevronRight, Circle
+  LayoutGrid, Folder, Plus, Minus, Maximize2, 
+  Download, Code, Bell, X, Info, Sparkles, ArrowLeft,
+  ChevronRight, Circle, Loader2, FileCode
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { externalSupabase } from '@/integrations/external-supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { MermaidRenderer } from '@/components/diagrams/MermaidRenderer';
 import { useGenerateDiagram } from '@/hooks/useGenerateDiagram';
 import { Repository } from '@/types/repository';
@@ -25,6 +25,15 @@ export default function RepoDetails() {
   const [loading, setLoading] = useState(true);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const { generateDiagram, isGenerating } = useGenerateDiagram();
+  
+  // Interactive node state
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [nodeInfo, setNodeInfo] = useState<{
+    description: string;
+    tech_stack: string[];
+    probable_files: string[];
+  } | null>(null);
+  const [isAnalyzingNode, setIsAnalyzingNode] = useState(false);
 
   useEffect(() => {
     const fetchRepository = async () => {
@@ -74,6 +83,38 @@ export default function RepoDetails() {
         setRepository(prev => prev ? { ...prev, diagram_code: newCode } : null);
       }
     }
+  };
+
+  const handleNodeClick = async (nodeLabel: string) => {
+    console.log('🎯 Node clicked:', nodeLabel);
+    setSelectedNode(nodeLabel);
+    setNodeInfo(null);
+    setIsAnalyzingNode(true);
+    setIsPanelOpen(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('explain-node', {
+        body: { 
+          github_repo_id: repository?.github_repo_id,
+          node_label: nodeLabel
+        }
+      });
+      
+      if (error) throw error;
+      console.log('✅ Node explanation:', data);
+      setNodeInfo(data);
+    } catch (error) {
+      console.error('🔥 Error explaining node:', error);
+      toast.error('Failed to analyze component');
+      setNodeInfo(null);
+    } finally {
+      setIsAnalyzingNode(false);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedNode(null);
+    setNodeInfo(null);
   };
 
   if (loading) {
@@ -205,7 +246,10 @@ export default function RepoDetails() {
                 contentStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <div className="p-8">
-                  <MermaidRenderer content={repository.diagram_code} />
+                  <MermaidRenderer 
+                    content={repository.diagram_code} 
+                    onNodeClick={handleNodeClick}
+                  />
                 </div>
               </TransformComponent>
             </TransformWrapper>
@@ -228,7 +272,23 @@ export default function RepoDetails() {
           <aside className="w-96 bg-[#161b26] border-l border-[#232f48] flex flex-col overflow-hidden flex-shrink-0">
             {/* Panel Header */}
             <div className="p-4 border-b border-[#232f48] flex items-center justify-between">
-              <h2 className="font-space-grotesk font-semibold text-foreground">Component Details</h2>
+              <div className="flex items-center gap-2">
+                {selectedNode && (
+                  <button 
+                    onClick={handleClearSelection}
+                    className="p-1 rounded hover:bg-[#232f48] transition-colors"
+                    title="Back to overview"
+                  >
+                    <ArrowLeft className="w-4 h-4 text-[#92a4c9]" />
+                  </button>
+                )}
+                <h2 className="font-space-grotesk font-semibold text-foreground">
+                  {selectedNode || 'Repo Overview'}
+                </h2>
+                {isAnalyzingNode && (
+                  <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                )}
+              </div>
               <button 
                 onClick={() => setIsPanelOpen(false)}
                 className="p-1.5 rounded-lg hover:bg-[#232f48] transition-colors"
@@ -238,100 +298,118 @@ export default function RepoDetails() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              {/* Component Info */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Settings2 className="w-5 h-5 text-primary" />
-                  <h3 className="font-space-grotesk font-semibold text-foreground">API Gateway</h3>
-                </div>
-                
-                <div className="space-y-2">
-                  <span className="text-xs font-medium text-[#92a4c9] uppercase tracking-wider">Description</span>
-                  <p className="text-sm text-[#92a4c9] leading-relaxed">
-                    The central entry point for all client requests. It handles routing, composition, and protocol translation.
-                  </p>
-                </div>
-              </div>
-
-              {/* Live Metrics */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-medium text-[#92a4c9] uppercase tracking-wider">Live Metrics</span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg bg-[#101622] border border-[#232f48]">
-                    <span className="text-xs text-[#92a4c9]">Latency (p99)</span>
-                    <p className="font-space-grotesk font-bold text-lg text-foreground">45ms</p>
+              {isAnalyzingNode ? (
+                /* Loading skeleton */
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <Skeleton className="h-4 w-24 bg-[#232f48]" />
+                    <Skeleton className="h-16 w-full bg-[#232f48]" />
                   </div>
-                  <div className="p-3 rounded-lg bg-[#101622] border border-[#232f48]">
-                    <span className="text-xs text-[#92a4c9]">Requests/sec</span>
-                    <p className="font-space-grotesk font-bold text-lg text-foreground">1,240</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* AI-Inferred Stack */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-medium text-[#92a4c9] uppercase tracking-wider">AI-Inferred Stack</span>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#101622] border border-[#232f48]">
-                    <div className="flex items-center gap-2">
-                      <Server className="w-4 h-4 text-blue-400" />
-                      <span className="text-sm text-foreground">Nginx</span>
+                  <div className="space-y-3">
+                    <Skeleton className="h-4 w-20 bg-[#232f48]" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-6 w-16 rounded-full bg-[#232f48]" />
+                      <Skeleton className="h-6 w-20 rounded-full bg-[#232f48]" />
+                      <Skeleton className="h-6 w-14 rounded-full bg-[#232f48]" />
                     </div>
-                    <span className="text-xs text-emerald-400">98% conf.</span>
                   </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#101622] border border-[#232f48]">
-                    <div className="flex items-center gap-2">
-                      <Code className="w-4 h-4 text-yellow-400" />
-                      <span className="text-sm text-foreground">Lua Scripts</span>
-                    </div>
-                    <span className="text-xs text-yellow-400">85% conf.</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#101622] border border-[#232f48]">
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-red-400" />
-                      <span className="text-sm text-foreground">ModSecurity</span>
-                    </div>
-                    <span className="text-xs text-[#92a4c9]">Low conf.</span>
+                  <div className="space-y-3">
+                    <Skeleton className="h-4 w-24 bg-[#232f48]" />
+                    <Skeleton className="h-10 w-full bg-[#232f48]" />
+                    <Skeleton className="h-10 w-full bg-[#232f48]" />
                   </div>
                 </div>
-              </div>
+              ) : selectedNode && nodeInfo ? (
+                /* AI-generated node info */
+                <div className="space-y-6">
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <span className="text-xs font-medium text-[#92a4c9] uppercase tracking-wider">Description</span>
+                    <p className="text-sm text-[#92a4c9] leading-relaxed">
+                      {nodeInfo.description}
+                    </p>
+                  </div>
 
-              {/* Defined In */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <FolderOpen className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-medium text-[#92a4c9] uppercase tracking-wider">Defined In</span>
-                </div>
-                
-                <button className="w-full flex items-center justify-between p-2.5 rounded-lg bg-[#101622] border border-[#232f48] hover:border-primary/50 transition-colors group">
-                  <div className="flex items-center gap-2">
-                    <Folder className="w-4 h-4 text-[#92a4c9]" />
-                    <span className="text-sm text-foreground font-mono">src/gateway/nginx.conf</span>
+                  {/* Tech Stack */}
+                  <div className="space-y-3">
+                    <span className="text-xs font-medium text-[#92a4c9] uppercase tracking-wider">Tech Stack</span>
+                    <div className="flex flex-wrap gap-2">
+                      {nodeInfo.tech_stack.map((tech, idx) => (
+                        <span 
+                          key={idx}
+                          className="px-2.5 py-1 text-xs font-medium rounded-full bg-blue-400/10 text-blue-400 ring-1 ring-inset ring-blue-400/20"
+                        >
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-[#92a4c9] group-hover:text-primary transition-colors" />
-                </button>
-              </div>
+
+                  {/* Related Files */}
+                  <div className="space-y-3">
+                    <span className="text-xs font-medium text-[#92a4c9] uppercase tracking-wider">Related Files</span>
+                    <div className="space-y-2">
+                      {nodeInfo.probable_files.map((file, idx) => (
+                        <div 
+                          key={idx}
+                          className="flex items-center gap-2 p-2.5 rounded-lg bg-[#101622] border border-[#232f48]"
+                        >
+                          <FileCode className="w-4 h-4 text-[#92a4c9] flex-shrink-0" />
+                          <span className="text-sm font-mono text-foreground truncate">{file}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Default static content - Repo Overview */
+                <div className="space-y-6">
+                  <div className="p-4 rounded-lg bg-[#101622] border border-[#232f48]">
+                    <div className="flex items-center gap-3 mb-3">
+                      <LayoutGrid className="w-5 h-5 text-primary" />
+                      <h3 className="font-space-grotesk font-semibold text-foreground">{repository?.name}</h3>
+                    </div>
+                    <p className="text-sm text-[#92a4c9] leading-relaxed">
+                      {repository?.description || 'No description available. Click on any node in the diagram to see AI-generated details about that component.'}
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+                    <div className="flex items-start gap-3">
+                      <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-foreground font-medium mb-1">Interactive Architecture</p>
+                        <p className="text-xs text-[#92a4c9]">
+                          Click on any node in the diagram to get AI-powered insights about that component.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Panel Footer */}
             <div className="p-4 border-t border-[#232f48] space-y-2">
-              <Button 
-                className="w-full" 
-                variant="outline"
-                onClick={() => toast.info('View logs coming soon!')}
-              >
-                <Info className="w-4 h-4 mr-2" />
-                View Logs
-              </Button>
-              <p className="text-xs text-center text-[#92a4c9]">Last updated 2m ago</p>
+              {selectedNode ? (
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={handleClearSelection}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Overview
+                </Button>
+              ) : (
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={() => toast.info('View logs coming soon!')}
+                >
+                  <Info className="w-4 h-4 mr-2" />
+                  View Logs
+                </Button>
+              )}
             </div>
           </aside>
         )}

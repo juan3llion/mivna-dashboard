@@ -3,11 +3,13 @@ import mermaid from 'mermaid';
 
 interface MermaidRendererProps {
   content: string;
+  onNodeClick?: (nodeLabel: string) => void;
 }
 
 mermaid.initialize({
   startOnLoad: false,
   theme: 'dark',
+  securityLevel: 'loose',
   themeVariables: {
     primaryColor: '#3b82f6',
     primaryTextColor: '#f8fafc',
@@ -25,7 +27,7 @@ mermaid.initialize({
   fontFamily: 'Inter, sans-serif',
 });
 
-export function MermaidRenderer({ content }: MermaidRendererProps) {
+export function MermaidRenderer({ content, onNodeClick }: MermaidRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +42,26 @@ export function MermaidRenderer({ content }: MermaidRendererProps) {
         const id = `mermaid-${Date.now()}`;
         const { svg } = await mermaid.render(id, content);
         containerRef.current.innerHTML = svg;
+
+        // Attach click listeners to nodes if onNodeClick is provided
+        if (onNodeClick) {
+          const nodes = containerRef.current.querySelectorAll('.node, .nodeLabel, [class*="node"]');
+          nodes.forEach(node => {
+            (node as HTMLElement).style.cursor = 'pointer';
+            node.addEventListener('click', (e) => {
+              e.stopPropagation();
+              // Try to extract the label from different possible locations
+              const labelElement = node.querySelector('.nodeLabel') || 
+                                   node.querySelector('text') ||
+                                   node.querySelector('span');
+              const label = labelElement?.textContent?.trim() || 
+                            (node as HTMLElement).textContent?.trim() || '';
+              if (label) {
+                onNodeClick(label);
+              }
+            });
+          });
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to render diagram');
         if (containerRef.current) {
@@ -49,7 +71,7 @@ export function MermaidRenderer({ content }: MermaidRendererProps) {
     };
 
     renderDiagram();
-  }, [content]);
+  }, [content, onNodeClick]);
 
   if (error) {
     return (
