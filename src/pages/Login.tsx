@@ -73,7 +73,7 @@ const Login = () => {
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold text-foreground text-center mb-2 font-space-grotesk">Welcome to ArchGen</h1>
+          <h1 className="text-3xl font-bold text-foreground text-center mb-2 font-space-grotesk">Welcome to MIVNA</h1>
 
           {/* Subtitle */}
           <p className="text-[#92a4c9] text-center mb-8 font-noto-sans">Sign in with GitHub to get started</p>
