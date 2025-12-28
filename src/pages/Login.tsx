@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { cloudSupabase } from "@/integrations/cloud/client";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Eye, EyeOff, LayoutGrid } from "lucide-react";
+import { Loader2, Eye, EyeOff, LayoutGrid, Github } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -124,6 +124,29 @@ const Login = () => {
     }
   };
 
+  const handleGitHubLogin = async () => {
+    setLoading(true);
+    try {
+      const { error } = await cloudSupabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          scopes: 'repo',
+          redirectTo: window.location.origin
+        }
+      });
+      
+      if (error) {
+        console.error("Login Error:", error);
+        toast.error("Failed to connect with GitHub");
+      }
+    } catch (error) {
+      console.error("Login Error:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col relative bg-background-dark">
       {/* Background Image with Blur Overlay */}
@@ -227,6 +250,33 @@ const Login = () => {
               {isSignUp ? "Create Account" : "Sign In"}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-[#232f48]" />
+            <span className="text-[#92a4c9] text-sm font-noto-sans">or</span>
+            <div className="flex-1 h-px bg-[#232f48]" />
+          </div>
+
+          {/* GitHub OAuth Button */}
+          <button
+            type="button"
+            onClick={handleGitHubLogin}
+            disabled={loading}
+            className="w-full py-3 px-4 rounded-lg 
+                       bg-[#24292e] hover:bg-[#2f363d]
+                       text-foreground font-semibold font-space-grotesk
+                       border border-[#232f48]
+                       transition-all disabled:opacity-50 
+                       flex items-center justify-center gap-3"
+          >
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Github className="h-5 w-5" />
+            )}
+            Continue with GitHub
+          </button>
 
           {/* Toggle Sign In / Sign Up */}
           <p className="text-center text-[#92a4c9] mt-6 text-sm font-noto-sans">
