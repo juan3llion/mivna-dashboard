@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, Filter, Loader2, FolderX, RefreshCw } from 'lucide-react';
+import { PlusCircle, Search, Filter, Loader2, FolderX, RefreshCw, Github } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { cloudSupabase } from '@/integrations/cloud/client';
 import { toast } from 'sonner';
@@ -25,29 +25,58 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [docsModalRepo, setDocsModalRepo] = useState<Repository | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [hasGitHubLinked, setHasGitHubLinked] = useState<boolean | null>(null);
   
   const GITHUB_APP_INSTALL_URL = "https://github.com/apps/mivna-architect-bot";
+
+  // Check if user has GitHub linked on mount
+  useEffect(() => {
+    const checkGitHubLink = async () => {
+      const { data: { user } } = await cloudSupabase.auth.getUser();
+      if (user) {
+        const hasGitHub = user.identities?.some(
+          identity => identity.provider === 'github'
+        );
+        setHasGitHubLinked(hasGitHub ?? false);
+      }
+    };
+    checkGitHubLink();
+  }, []);
 
   const handleSyncRepositories = async () => {
     setIsSyncing(true);
     
     try {
-      // Get current session to extract GitHub provider token
       const { data: { session }, error: sessionError } = await cloudSupabase.auth.getSession();
       
       if (sessionError || !session) {
-        toast.error('Please log in again to sync repositories');
+        toast.error('Please log in to sync repositories');
         return;
       }
       
       const providerToken = session.provider_token;
       
-      // If provider_token is missing (stale session), prompt re-login
+      // If provider_token is missing, trigger GitHub account linking
       if (!providerToken) {
-        toast.error('Session expired. Please log out and log in again to refresh GitHub permissions.');
+        toast.info('Redirecting to GitHub to authorize access...');
+        
+        const { error } = await cloudSupabase.auth.linkIdentity({
+          provider: 'github',
+          options: {
+            scopes: 'repo', // Required to read private repos
+            redirectTo: window.location.href
+          }
+        });
+        
+        if (error) {
+          console.error('Link identity error:', error);
+          toast.error('Failed to connect GitHub. Please try again.');
+        }
+        // User will be redirected to GitHub
         return;
       }
 
+      // Token exists - proceed with sync
       console.log('🔄 Starting repository sync...');
       
       const { data, error } = await cloudSupabase.functions.invoke('sync-repos', {
@@ -62,11 +91,11 @@ export default function Home() {
       console.log('✅ Sync complete:', data);
       toast.success(`Repositories synchronized! (${data.synced_count} repos)`);
       
-      // Refresh the repository list
       await fetchRepositories();
+      setHasGitHubLinked(true);
       
     } catch (error) {
-      console.error('🔥 Sync error:', error);
+      console.error('Sync error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to sync repositories');
     } finally {
       setIsSyncing(false);
@@ -192,10 +221,16 @@ export default function Home() {
             >
               {isSyncing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : hasGitHubLinked === false ? (
+                <Github className="h-4 w-4" />
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              {isSyncing ? 'Syncing...' : 'Sync Repos'}
+              {isSyncing 
+                ? 'Syncing...' 
+                : hasGitHubLinked === false 
+                  ? 'Connect & Sync GitHub' 
+                  : 'Sync Repos'}
             </Button>
             <Button
               onClick={() => window.location.href = GITHUB_APP_INSTALL_URL}
