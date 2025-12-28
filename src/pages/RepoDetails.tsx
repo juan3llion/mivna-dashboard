@@ -61,8 +61,8 @@ export default function RepoDetails() {
     fetchRepository();
   }, [id]);
 
-  // Zoom controls with increased step for more noticeable zoom
-  const ZOOM_STEP = 0.5;
+  // Zoom controls with aggressive step for much more noticeable zoom
+  const ZOOM_STEP = 1.0;
   const ZOOM_ANIMATION_TIME = 200;
   
   const handleZoomIn = () => transformRef.current?.zoomIn(ZOOM_STEP, ZOOM_ANIMATION_TIME);
@@ -240,10 +240,11 @@ export default function RepoDetails() {
             <TransformWrapper
               ref={transformRef}
               initialScale={1}
-              minScale={0.25}
-              maxScale={4}
+              minScale={0.1}
+              maxScale={16}
               centerOnInit
               limitToBounds={false}
+              wheel={{ step: 0.3 }}
             >
               <TransformComponent
                 wrapperStyle={{ width: '100%', height: '100%' }}
