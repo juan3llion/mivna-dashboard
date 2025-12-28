@@ -58,20 +58,18 @@ export default function Home() {
       
       // If provider_token is missing, trigger GitHub account linking
       if (!providerToken) {
-        toast.info('Redirecting to GitHub to authorize access...');
+        toast.loading('Connecting to GitHub to fetch repositories...');
         
         const { error } = await cloudSupabase.auth.linkIdentity({
           provider: 'github',
           options: {
-            scopes: 'repo', // Required to read private repos
-            redirectTo: window.location.href
+            scopes: 'repo', // Mandatory to see private repos
+            redirectTo: window.location.origin // Return to dashboard
           }
         });
         
-        if (error) {
-          console.error('Link identity error:', error);
-          toast.error('Failed to connect GitHub. Please try again.');
-        }
+        if (error) throw error;
+        
         // User will be redirected to GitHub
         return;
       }
