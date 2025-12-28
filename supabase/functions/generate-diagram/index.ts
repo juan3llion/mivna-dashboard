@@ -42,7 +42,6 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Parse request body
     const { github_repo_id } = await req.json();
 
     if (!github_repo_id) {
@@ -55,11 +54,11 @@ serve(async (req) => {
 
     console.log(`🚀 Starting diagram generation for repo ID: ${github_repo_id}`);
 
-    // 2. Get external Supabase credentials
+    // Connect to external Supabase
     const externalSupabaseUrl = Deno.env.get("EXTERNAL_SUPABASE_URL");
-    const externalServiceRoleKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
+    const externalSupabaseKey = Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!externalSupabaseUrl || !externalServiceRoleKey) {
+    if (!externalSupabaseUrl || !externalSupabaseKey) {
       console.error("❌ Missing external Supabase credentials");
       return new Response(JSON.stringify({ error: "External Supabase not configured" }), {
         status: 500,
@@ -67,7 +66,7 @@ serve(async (req) => {
       });
     }
 
-    const supabase = createClient(externalSupabaseUrl, externalServiceRoleKey);
+    const supabase = createClient(externalSupabaseUrl, externalSupabaseKey);
 
     // Fetch the repository with file_tree
     console.log("📥 Fetching repository from database...");
@@ -114,20 +113,29 @@ serve(async (req) => {
 
     // Prompt blindado: Sin comentarios ni sintaxis compleja
     const systemPrompt = `<role>
-You are a Senior Software Architect. Generate a clean, error-free Mermaid.js diagram.
+You are a Senior Software Architect. Generate a Mermaid.js diagram.
 </role>
 
 <CRITICAL_RULES>
-1. Use ONLY "graph TD".
-2. NO COMMENTS (do not use %).
-3. NO SPECIAL CHARACTERS: Inside labels, use only letters, numbers, and basic emojis. 
-4. QUOTES ARE MANDATORY: Every label MUST be in quotes. Example: id["Label Name"].
-5. NO COMPLEX CONNECTORS: Use only --> or -- "text" -->.
-6. SUBGRAPHS: Ensure every 'subgraph' has a clear 'end'.
+1. Start with "graph TD" (Top-Down) or "graph LR" (Left-Right).
+2. IMPORTANT: DO NOT WRITE COMMENTS in the Mermaid code (no lines starting with %).
+3. STRUCTURE:
+   - Use 'subgraph' for grouping modules.
+   - Close every 'subgraph' with the keyword 'end' ON ITS OWN LINE.
+4. NODE STYLING:
+   - User: id["👤 User Name"]
+   - Service: id["📦 Service Name"]
+   - Database: id[("🗄️ Database Name")] (Must use cylinder shape ( ) )
+5. CONNECTIONS:
+   - Define all connections at the very bottom of the code, outside subgraphs.
+   - Syntax: NodeA -->|Action| NodeB
+6. CLEANLINESS:
+   - Node IDs must be simple alphanumeric (e.g., AuthServ, DB1), no spaces/symbols.
+   - Text labels must always be inside quotes.
 </CRITICAL_RULES>
 
 <output_format>
-Reasoning first, then the code inside \`\`\`mermaid \`\`\`.
+Provide reasoning first, then the clean Mermaid code inside \`\`\`mermaid \`\`\`.
 </output_format>`;
 
     // Build user prompt with dynamic placeholders

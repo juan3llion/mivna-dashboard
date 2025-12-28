@@ -1,31 +1,25 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
-import {
-  LayoutGrid,
-  Bell,
-  X,
-  Info,
-  Sparkles,
-  ArrowLeft,
-  ChevronRight,
-  Circle,
-  Loader2,
-  FileCode,
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { TransformWrapper, TransformComponent, ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
+import { 
+  LayoutGrid, Folder, Plus, Minus, Maximize2, 
+  Download, Code, Bell, X, Info, Sparkles, ArrowLeft,
+  ChevronRight, Circle, Loader2, FileCode
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { externalSupabase } from '@/integrations/external-supabase/client';
 import { supabase } from '@/integrations/supabase/client';
-import { DiagramToolbar } from '@/components/diagrams/DiagramToolbar';
 import { MermaidRenderer } from '@/components/diagrams/MermaidRenderer';
 import { useGenerateDiagram } from '@/hooks/useGenerateDiagram';
 import { Repository } from '@/types/repository';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+
 export default function RepoDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const transformRef = useRef<ReactZoomPanPinchRef>(null);
   
   const [repository, setRepository] = useState<Repository | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,7 +61,9 @@ export default function RepoDetails() {
     fetchRepository();
   }, [id]);
 
-  // Zoom controls are handled by <DiagramToolbar /> inside TransformWrapper.
+  const handleZoomIn = () => transformRef.current?.zoomIn();
+  const handleZoomOut = () => transformRef.current?.zoomOut();
+  const handleResetView = () => transformRef.current?.resetTransform();
 
   const handleCopyMermaid = () => {
     if (repository?.diagram_code) {
@@ -186,6 +182,48 @@ export default function RepoDetails() {
 
       {/* Main Workspace */}
       <div className="flex-1 flex overflow-hidden relative">
+        {/* Floating Toolbar */}
+        <div className="absolute top-4 left-4 z-20 flex items-center gap-2 p-1.5 bg-[#161b26]/90 backdrop-blur-sm rounded-xl border border-[#232f48] shadow-xl">
+          <button 
+            onClick={handleZoomIn}
+            className="p-2 rounded-lg hover:bg-[#232f48] transition-colors"
+            title="Zoom In"
+          >
+            <Plus className="w-5 h-5 text-[#92a4c9]" />
+          </button>
+          <button 
+            onClick={handleZoomOut}
+            className="p-2 rounded-lg hover:bg-[#232f48] transition-colors"
+            title="Zoom Out"
+          >
+            <Minus className="w-5 h-5 text-[#92a4c9]" />
+          </button>
+          <button 
+            onClick={handleResetView}
+            className="p-2 rounded-lg hover:bg-[#232f48] transition-colors"
+            title="Reset View"
+          >
+            <Maximize2 className="w-5 h-5 text-[#92a4c9]" />
+          </button>
+          
+          <div className="w-px h-6 bg-[#232f48]" />
+          
+          <button 
+            onClick={handleDownloadPNG}
+            className="p-2 rounded-lg hover:bg-[#232f48] transition-colors"
+            title="Download PNG"
+          >
+            <Download className="w-5 h-5 text-[#92a4c9]" />
+          </button>
+          <button 
+            onClick={handleCopyMermaid}
+            className="p-2 rounded-lg hover:bg-[#232f48] transition-colors"
+            title="Copy Mermaid Code"
+          >
+            <Code className="w-5 h-5 text-[#92a4c9]" />
+          </button>
+        </div>
+
         {/* Canvas Area */}
         <div 
           className="flex-1 overflow-hidden cursor-grab active:cursor-grabbing"
@@ -195,27 +233,26 @@ export default function RepoDetails() {
           }}
         >
           {repository.diagram_code ? (
-            <div className="relative h-full w-full">
-              <TransformWrapper
-                initialScale={1}
-                minScale={0.1}
-                maxScale={64}
-                centerOnInit
-                limitToBounds={false}
-                wheel={{ step: 0.3 }}
-                panning={{ excluded: ["diagram-toolbar"] }}
+            <TransformWrapper
+              ref={transformRef}
+              initialScale={1}
+              minScale={0.25}
+              maxScale={4}
+              centerOnInit
+              limitToBounds={false}
+            >
+              <TransformComponent
+                wrapperStyle={{ width: '100%', height: '100%' }}
+                contentStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                <DiagramToolbar onCopyMermaid={handleCopyMermaid} onDownloadPNG={handleDownloadPNG} />
-                <TransformComponent
-                  wrapperStyle={{ width: '100%', height: '100%' }}
-                  contentStyle={{ width: 'fit-content', height: 'fit-content' }}
-                >
-                  <div className="p-8 inline-block">
-                    <MermaidRenderer content={repository.diagram_code} onNodeClick={handleNodeClick} />
-                  </div>
-                </TransformComponent>
-              </TransformWrapper>
-            </div>
+                <div className="p-8">
+                  <MermaidRenderer 
+                    content={repository.diagram_code} 
+                    onNodeClick={handleNodeClick}
+                  />
+                </div>
+              </TransformComponent>
+            </TransformWrapper>
           ) : (
             <div className="h-full flex items-center justify-center">
               <div className="text-center space-y-4">

@@ -43,15 +43,6 @@ export function MermaidRenderer({ content, onNodeClick }: MermaidRendererProps) 
         const { svg } = await mermaid.render(id, content);
         containerRef.current.innerHTML = svg;
 
-        // Ensure the SVG keeps its intrinsic size so parent transforms (zoom) are visible.
-        const svgEl = containerRef.current.querySelector('svg');
-        if (svgEl) {
-          svgEl.style.maxWidth = 'none';
-          svgEl.style.width = 'auto';
-          svgEl.style.height = 'auto';
-          svgEl.style.display = 'block';
-        }
-
         // Attach click listeners to nodes if onNodeClick is provided
         if (onNodeClick) {
           const nodes = containerRef.current.querySelectorAll('.node, .nodeLabel, [class*="node"]');
@@ -102,9 +93,9 @@ export function MermaidRenderer({ content, onNodeClick }: MermaidRendererProps) 
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="inline-block overflow-visible p-4 [&>svg]:max-w-none [&>svg]:w-auto [&>svg]:h-auto"
+    <div 
+      ref={containerRef} 
+      className="flex items-center justify-center h-full overflow-auto p-4 [&>svg]:max-w-full [&>svg]:h-auto"
     />
   );
 }
