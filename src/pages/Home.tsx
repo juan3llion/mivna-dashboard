@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, Filter, Loader2, FolderX } from 'lucide-react';
+import { PlusCircle, Search, Filter, Loader2, FolderX, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { cloudSupabase } from '@/integrations/cloud/client';
 import { toast } from 'sonner';
@@ -24,8 +24,54 @@ export default function Home() {
   const [selectedRepo, setSelectedRepo] = useState<Repository | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [docsModalRepo, setDocsModalRepo] = useState<Repository | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const GITHUB_APP_INSTALL_URL = "https://github.com/apps/mivna-architect-bot";
+
+  const handleSyncRepositories = async () => {
+    setIsSyncing(true);
+    
+    try {
+      // Get current session to extract GitHub provider token
+      const { data: { session }, error: sessionError } = await cloudSupabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        toast.error('Please log in again to sync repositories');
+        return;
+      }
+      
+      const providerToken = session.provider_token;
+      
+      // If provider_token is missing (stale session), prompt re-login
+      if (!providerToken) {
+        toast.error('Session expired. Please log out and log in again to refresh GitHub permissions.');
+        return;
+      }
+
+      console.log('🔄 Starting repository sync...');
+      
+      const { data, error } = await cloudSupabase.functions.invoke('sync-repos', {
+        body: { 
+          github_access_token: providerToken,
+          user_id: session.user.id
+        }
+      });
+      
+      if (error) throw error;
+      
+      console.log('✅ Sync complete:', data);
+      toast.success(`Repositories synchronized! (${data.synced_count} repos)`);
+      
+      // Refresh the repository list
+      await fetchRepositories();
+      
+    } catch (error) {
+      console.error('🔥 Sync error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to sync repositories');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Handle GitHub app installation callback
   useEffect(() => {
@@ -137,13 +183,28 @@ export default function Home() {
               )}
             </p>
           </div>
-          <Button
-            onClick={() => window.location.href = GITHUB_APP_INSTALL_URL}
-            className="gap-2 whitespace-nowrap"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Import New Repo
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={handleSyncRepositories}
+              disabled={isSyncing}
+              className="gap-2 whitespace-nowrap border-[#232f48] text-[#92a4c9] hover:text-foreground hover:bg-[#232f48]"
+            >
+              {isSyncing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              {isSyncing ? 'Syncing...' : 'Sync Repos'}
+            </Button>
+            <Button
+              onClick={() => window.location.href = GITHUB_APP_INSTALL_URL}
+              className="gap-2 whitespace-nowrap"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Import New Repo
+            </Button>
+          </div>
         </div>
 
         {/* Repositories Section */}
