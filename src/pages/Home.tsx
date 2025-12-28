@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search, Filter, Loader2, FolderX, RefreshCw, Github } from 'lucide-react';
+import { PlusCircle, Search, Filter, Loader2, FolderX, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { cloudSupabase } from '@/integrations/cloud/client';
 import { toast } from 'sonner';
@@ -25,23 +25,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [docsModalRepo, setDocsModalRepo] = useState<Repository | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [hasGitHubLinked, setHasGitHubLinked] = useState<boolean | null>(null);
   
   const GITHUB_APP_INSTALL_URL = "https://github.com/apps/mivna-architect-bot";
-
-  // Check if user has GitHub linked on mount
-  useEffect(() => {
-    const checkGitHubLink = async () => {
-      const { data: { user } } = await cloudSupabase.auth.getUser();
-      if (user) {
-        const hasGitHub = user.identities?.some(
-          identity => identity.provider === 'github'
-        );
-        setHasGitHubLinked(hasGitHub ?? false);
-      }
-    };
-    checkGitHubLink();
-  }, []);
 
   const handleSyncRepositories = async () => {
     setIsSyncing(true);
@@ -56,25 +41,12 @@ export default function Home() {
       
       const providerToken = session.provider_token;
       
-      // If provider_token is missing, trigger GitHub account linking
+      // User must be logged in via GitHub to have a provider_token
       if (!providerToken) {
-        toast.loading('Connecting to GitHub to fetch repositories...');
-        
-        const { error } = await cloudSupabase.auth.linkIdentity({
-          provider: 'github',
-          options: {
-            scopes: 'repo', // Mandatory to see private repos
-            redirectTo: window.location.origin // Return to dashboard
-          }
-        });
-        
-        if (error) throw error;
-        
-        // User will be redirected to GitHub
+        toast.error('Please log out and sign in with GitHub to sync repositories');
         return;
       }
 
-      // Token exists - proceed with sync
       console.log('🔄 Starting repository sync...');
       
       const { data, error } = await cloudSupabase.functions.invoke('sync-repos', {
@@ -90,7 +62,6 @@ export default function Home() {
       toast.success(`Repositories synchronized! (${data.synced_count} repos)`);
       
       await fetchRepositories();
-      setHasGitHubLinked(true);
       
     } catch (error) {
       console.error('Sync error:', error);
@@ -219,16 +190,10 @@ export default function Home() {
             >
               {isSyncing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
-              ) : hasGitHubLinked === false ? (
-                <Github className="h-4 w-4" />
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              {isSyncing 
-                ? 'Syncing...' 
-                : hasGitHubLinked === false 
-                  ? 'Connect & Sync GitHub' 
-                  : 'Sync Repos'}
+              {isSyncing ? 'Syncing...' : 'Sync Repos'}
             </Button>
             <Button
               onClick={() => window.location.href = GITHUB_APP_INSTALL_URL}
