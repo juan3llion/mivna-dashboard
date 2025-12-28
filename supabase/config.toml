@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.explain-node]
 verify_jwt = false
+
+[functions.sync-repos]
+verify_jwt = false
