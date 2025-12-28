@@ -181,21 +181,10 @@ export default function Home() {
               )}
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={handleSyncRepositories}
-              disabled={isSyncing}
-              className="gap-2 whitespace-nowrap border-[#232f48] text-[#92a4c9] hover:text-foreground hover:bg-[#232f48]"
-            >
-              {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              {isSyncing ? "Syncing..." : "Sync Repos"}
-            </Button>
-            <Button onClick={() => (window.location.href = GITHUB_APP_INSTALL_URL)} className="gap-2 whitespace-nowrap">
-              <PlusCircle className="h-4 w-4" />
-              Import New Repo
-            </Button>
-          </div>
+          <Button onClick={() => (window.location.href = GITHUB_APP_INSTALL_URL)} className="gap-2 whitespace-nowrap">
+            <PlusCircle className="h-4 w-4" />
+            Import New Repo
+          </Button>
         </div>
 
         {/* Repositories Section */}
