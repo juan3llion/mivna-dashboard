@@ -1,4 +1,4 @@
-import { Home, Settings, CreditCard, BookOpen, LogOut, Zap } from 'lucide-react';
+import { Home, Settings, LogOut, Zap } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -17,15 +17,13 @@ import { Button } from '@/components/ui/button';
 const navItems = [
   { title: 'Home', url: '/dashboard', icon: Home },
   { title: 'Settings', url: '/settings', icon: Settings },
-  { title: 'Billing', url: '/billing', icon: CreditCard },
-  { title: 'Documentation', url: '/docs', icon: BookOpen },
 ];
 
 export function AppSidebar() {
   const { signOut } = useAuth();
 
   return (
-    <Sidebar className="w-72 border-r border-[#232f48] bg-[#111722]">
+    <Sidebar className="border-r border-[#232f48] bg-[#111722]">
       {/* Brand Section */}
       <SidebarHeader className="p-5">
         <div className="flex items-center gap-3">
@@ -33,7 +31,7 @@ export function AppSidebar() {
             <Zap className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold text-foreground font-space-grotesk">ArchGen</span>
+            <span className="text-lg font-bold text-foreground font-space-grotesk">MIVNA</span>
             <span className="text-xs text-[#92a4c9]">v1.0 Beta</span>
           </div>
         </div>
