@@ -122,10 +122,61 @@ export default function Home() {
     handleInstallation();
   }, [searchParams]);
 
-  // Fetch repositories on mount
+  // Fetch repositories and auto-sync from GitHub on mount
   useEffect(() => {
-    fetchRepositories();
+    const initializeDashboard = async () => {
+      // First, load any cached repos from database (fast)
+      await fetchRepositories();
+
+      // Then, auto-sync all repos from GitHub in the background
+      // This ensures users see ALL their repos on first login
+      await handleAutoSync();
+    };
+
+    initializeDashboard();
   }, []);
+
+  // Auto-sync repos from GitHub (called on mount)
+  const handleAutoSync = async () => {
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        console.log("⚠️ No session for auto-sync, skipping...");
+        return;
+      }
+
+      const githubToken = session.provider_token;
+      if (!githubToken) {
+        console.log("⚠️ No GitHub token for auto-sync, skipping...");
+        return;
+      }
+
+      console.log("🔄 Auto-syncing repositories from GitHub...");
+      setIsSyncing(true);
+
+      const { data, error } = await supabase.functions.invoke("sync-repos", {
+        body: {
+          github_access_token: githubToken,
+          user_id: session.user.id,
+        },
+      });
+
+      if (error) {
+        console.error("❌ Auto-sync error:", error);
+        return;
+      }
+
+      console.log("✅ Auto-sync complete:", data);
+
+      // Refresh the repository list with synced data
+      await fetchRepositories();
+    } catch (error) {
+      console.error("❌ Auto-sync failed:", error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const fetchRepositories = async () => {
     setLoadingRepos(true);
@@ -210,9 +261,12 @@ export default function Home() {
           </div>
 
           {/* Repository Grid */}
-          {loadingRepos ? (
-            <div className="flex items-center justify-center py-20">
+          {loadingRepos || isSyncing ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="h-10 w-10 animate-spin text-[#92a4c9]" />
+              <p className="text-sm text-[#92a4c9] font-noto-sans">
+                {isSyncing ? "Syncing repositories from GitHub..." : "Loading repositories..."}
+              </p>
             </div>
           ) : filteredRepos.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
