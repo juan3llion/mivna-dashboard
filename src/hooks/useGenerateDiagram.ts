@@ -12,7 +12,7 @@ export function useGenerateDiagram() {
 
   const generateDiagram = async (githubRepoId: number): Promise<string | null> => {
     setIsGenerating(true);
-    
+
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-diagram`,
@@ -28,8 +28,10 @@ export function useGenerateDiagram() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        
-        if (response.status === 429) {
+
+        if (response.status === 403 && errorData.limit_reached) {
+          toast.error('You have reached your 3 repo limit. Upgrade your plan to generate more diagrams.');
+        } else if (response.status === 429) {
           toast.error('Rate limit exceeded. Please try again later.');
         } else if (response.status === 402) {
           toast.error('AI credits exhausted. Please add funds.');
@@ -42,7 +44,7 @@ export function useGenerateDiagram() {
       const data: GenerateDiagramResult = await response.json();
       toast.success('Architecture diagram generated!');
       return data.diagram_code;
-      
+
     } catch (error) {
       console.error('Error generating diagram:', error);
       toast.error('Failed to connect to AI service');

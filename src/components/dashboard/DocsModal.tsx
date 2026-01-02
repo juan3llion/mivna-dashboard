@@ -22,17 +22,17 @@ export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: D
 
   const handleCopyMarkdown = async () => {
     if (!repo?.documentation_md) return;
-    
+
     await navigator.clipboard.writeText(repo.documentation_md);
     setHasCopied(true);
     toast.success('Markdown copied to clipboard!');
-    
+
     setTimeout(() => setHasCopied(false), 2000);
   };
 
   const handleDownloadMarkdown = () => {
     if (!repo?.documentation_md) return;
-    
+
     const blob = new Blob([repo.documentation_md], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -42,7 +42,7 @@ export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: D
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     toast.success('Documentation downloaded!');
   };
 
@@ -56,7 +56,7 @@ export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: D
     setIsGenerating(true);
     try {
       // Debug logging before the call
-      console.log('🚀 Invoking generate-documentation with:', { 
+      console.log('🚀 Invoking generate-documentation with:', {
         github_repo_id: repo.github_repo_id,
         repo_name: repo.name,
         supabase_id: repo.id // This is NOT what we send, just for debug
@@ -68,11 +68,24 @@ export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: D
 
       if (error) {
         console.error('🔥 Supabase function error:', error);
+
+        // Check if this is a limit reached error
+        if (error.message?.includes('limit') || (error as any).context?.limit_reached) {
+          toast.error('You have reached your 3 repo limit. Upgrade your plan to generate more documentation.');
+          return;
+        }
+
         throw error;
       }
 
       console.log('✅ Generation success:', data);
-      
+
+      // Check for limit_reached in response data
+      if (data?.limit_reached) {
+        toast.error('You have reached your 3 repo limit. Upgrade your plan to generate more documentation.');
+        return;
+      }
+
       if (data?.documentation) {
         onDocumentationGenerated(repo.id, data.documentation);
         toast.success(repo?.documentation_md ? 'Documentation updated!' : 'Documentation generated successfully!');
@@ -82,8 +95,8 @@ export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: D
     } catch (error) {
       console.error('🔥 Error generating docs:', error);
       toast.error(
-        error instanceof Error 
-          ? error.message 
+        error instanceof Error
+          ? error.message
           : 'Failed to generate documentation'
       );
     } finally {
@@ -101,7 +114,7 @@ export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: D
               Repository Documentation
               {repo && <span className="text-[#92a4c9] font-normal">— {repo.name}</span>}
             </DialogTitle>
-            
+
             {repo?.documentation_md && (
               <div className="flex items-center gap-2">
                 <Button
@@ -118,7 +131,7 @@ export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: D
                   )}
                   {isGenerating ? 'Regenerating...' : 'Regenerate'}
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -129,7 +142,7 @@ export function DocsModal({ repo, isOpen, onClose, onDocumentationGenerated }: D
                   <Download className="h-4 w-4" />
                   Download
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   size="sm"

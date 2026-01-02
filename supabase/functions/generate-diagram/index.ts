@@ -68,6 +68,60 @@ serve(async (req) => {
 
     const supabase = createClient(externalSupabaseUrl, externalSupabaseKey);
 
+    // Extract user from Authorization header
+    const authHeader = req.headers.get("Authorization");
+    let userId: string | null = null;
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      // Create a client with the user's token to get their identity
+      const userSupabase = createClient(externalSupabaseUrl, Deno.env.get("EXTERNAL_SUPABASE_ANON_KEY") || externalSupabaseKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } }
+      });
+      const { data: { user }, error: userError } = await userSupabase.auth.getUser();
+
+      if (user && !userError) {
+        userId = user.id;
+        console.log(`👤 User authenticated: ${userId}`);
+      }
+    }
+
+    // Check usage limit if user is authenticated
+    if (userId) {
+      console.log(`📊 Checking usage limit for user ${userId} and repo ${github_repo_id}...`);
+      const { data: limitCheck, error: limitError } = await supabase.rpc(
+        "check_repo_generation_limit",
+        { p_user_id: userId, p_github_repo_id: github_repo_id }
+      );
+
+      if (limitError) {
+        console.error("❌ Error checking usage limit:", limitError);
+        // Continue anyway - don't block if limit check fails
+      } else if (limitCheck) {
+        console.log(`📊 Limit check result:`, limitCheck);
+
+        if (!limitCheck.allowed) {
+          console.log(`🚫 User ${userId} has reached their generation limit`);
+          return new Response(
+            JSON.stringify({
+              error: limitCheck.error || "Generation limit reached",
+              remaining: 0,
+              limit_reached: true,
+            }),
+            {
+              status: 403,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+
+        console.log(`✅ User has ${limitCheck.remaining} repos remaining. Is existing repo: ${limitCheck.is_existing_repo}`);
+      }
+    } else {
+      console.log("⚠️ No authenticated user found, skipping usage limit check");
+    }
+
+
     // Fetch the repository with file_tree
     console.log("📥 Fetching repository from database...");
     const { data: repo, error: fetchError } = await supabase
